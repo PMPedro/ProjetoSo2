@@ -17,9 +17,10 @@ int main() {
                     perror("Erro a Executar");
             }
             else{
+                //Processo Pai
                 int status;
-                pid_t pid_filho = res_fork; 
-		        waitpid (pid_filho , &status , 0 );	
+                pid_t pid_filho = res_fork; //Vai buscar PID do filhi
+		        waitpid (pid_filho , &status , 0 );	//Espera Pelo Filho
             }
 
 
