@@ -32,7 +32,7 @@ int main() {
     dup(canal_re[0]);
     close(canal_re[0]);
     close(canal_re[1]);
-
+    
 
 
     if (op == 'i') {
