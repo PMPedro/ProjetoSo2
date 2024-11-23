@@ -1,9 +1,7 @@
-#include <stdio.h> 
-#include <unistd.h> 
-#include <stdlib.h> 
-#include <sys/wait.h>
-#include <string.h>
 
+#include <estrutura.h>
+
+#define FIFO_NAME "mainpipe"
 
 /*
 #####
@@ -50,102 +48,86 @@ terminar. Os recursos do sistema em uso são libertados.
 
 
 */
+int running = 1;
+void handle_signal(int sig)
+{
+        running = 0;
+}
 
-
-
-int main() { 
+int main()
+{
         /*
         #########
         !!!!!!!!!!!!!!! AS MENSAGENS DOS TOPICOS TERÃO QUE INCLUIR ESPAÇOS!!!
         #########
         */
-        struct{
-              char message[300]; // TERÁ QUE INCLUIR ESPAÇOS!!!!
-              int ntopics[20];// limite maximo topicos
-              char topics[20];//nome topicos
-              char username[32];
-        }manager_info; //nome por melhorar!!!!
-        int pipe_fd[2];
-        int ret_val;
+        struct sigaction sa;
+        sa.sa_handler = handle_signal;
+        pid_t res_fork = fork();
 
-        char mensagemtesteparapipes[]="sojhdgioshgdfikhbgfj";
+        if (res_fork == 0)
+        { // Processo Filho
 
-
-
-        //#########
-        // fazer num futuro tipo uma lista ligada de structs
-        //#########
-
-
-        ret_val = pipe(pipe_fd);
-        //### verificacao de abertura pipe
-        if (ret_val != 0){
-                perror("Erro ao abrir pipe!");
-                return 0;
+                int r = execl("feed", "feed", NULL);
+                if (r == -1)
+                {
+                        perror("Erro a Executar");
+                }
         }
-        // perror("Erro");
-
-
-    	pid_t res_fork = fork();
-
-        	if (res_fork == 0) { //Processo Filho
-                
-                int r  = execl("feed", "feed", NULL) ;
-                if (r == -1){ 
-                    perror("Erro a Executar");
-                }
-                close(pipe_fd[0]); // fecha pipe na leitura (unistd)
-                // Fecha a parte de leitura
-                // int nbytes = write(canal_re[1], s, strlen(s));
-                ret_val = write( pipe_fd[1],mensagemtesteparapipes,strlen(mensagemtesteparapipes) );
-
-                 
-
-                /*if (ret_val != strlen( mensagemtesteparapipes) ){
-                        perror("write did not return expected value\n");
-                        exit(2);
-                }*/
-
-	            
-            }
-            else{
-                //Processo Pai
+        else
+        {
+                // Processo Pai
                 int status;
-
-                close(pipe_fd[1]); // fecha pipe na leitura (unistd)
-                // Fecha a parte de Escrita
-
-                ret_val = read(pipe_fd[0],mensagemtesteparapipes,strlen(mensagemtesteparapipes)); /* Read from pipe */
-
-                  if (ret_val != strlen( mensagemtesteparapipes) ){
-                        perror("write did not return expected value\n");
-                        exit(2);
+                // CRIA O FIFO
+                if (mkfifo(FIFO_NAME, 0666) == -1)
+                { // ve se tem erros na criacao do pipe
+                        if (errno != EEXIST)
+                        {
+                                perror("erro na criacao do named pipe");
+                                exit(EXIT_FAILURE);
+                        }
+                }
+                // abre o fifo em modo leitura
+                int fd = open(FIFO_NAME, O_RDWR);
+                if (fd == -1)
+                {
+                        perror("erro na abertura do named pipe para leitura");
+                        unlink(FIFO_NAME);
+                        exit(EXIT_FAILURE);
                 }
 
-                
-                pid_t pid_filho = res_fork; //Vai buscar PID do filho
-		        waitpid (pid_filho , &status , 0 );	//Espera Pelo Filho
-            }
+                char buffer[BUFFER_SIZE];
+                int nbytes;
+                int tipo;
+                // vai ler dados do pipe
+                while (running)
+                {       //ler dados do pipe
+                        nbytes = read(fd, tipo, BUFFER_SIZE);
+                        if (nbytes == -1)
+                        {
+                                if (errno != EINTR)
+                                {
+                                        perror("ocorreu um erro na leitura do named pipe");
+                                }
+                                close(fd);
+                                unlink(FIFO_NAME);
+                                exit(EXIT_FAILURE);
+                        }
+                        printf("TESTE -> %d \n", tipo );
+                }
+        }
 
+        /*
+        ##############
+        GUARDAR MENSAGENS PERMANENTES QUE AINDA TENHAM TEMPO DE VIDA, EM FICHEIRO!!!
+        SERÁ FICHEIRO TEXTO!!!!!
+        FORMATO DO FICHEIRO:
+        <NOME TOPICO> <USERNAME> <TEMPO DE VIDA RESTANTE> <CORPO DE MENSAGEM>
 
+        O NOME TOPICO, USER E TEMPO DE VIDA CONTARÃO COMO UMA ÚNICA PALAVRA!!! USAR SPRINTF!!!
 
+        OBRIGATORIO : O NOME DO FICHEIRO SERÁ GUARDADO NUMA VARIAVEL DE AMBIENTE MSG_FICH
 
-/*
-##############
-GUARDAR MENSAGENS PERMANENTES QUE AINDA TENHAM TEMPO DE VIDA, EM FICHEIRO!!!
-SERÁ FICHEIRO TEXTO!!!!!
-FORMATO DO FICHEIRO:
-<NOME TOPICO> <USERNAME> <TEMPO DE VIDA RESTANTE> <CORPO DE MENSAGEM>
-
-O NOME TOPICO, USER E TEMPO DE VIDA CONTARÃO COMO UMA ÚNICA PALAVRA!!! USAR SPRINTF!!!
-
-OBRIGATORIO : O NOME DO FICHEIRO SERÁ GUARDADO NUMA VARIAVEL DE AMBIENTE MSG_FICH 
-
-#######
- */
-
-
-
-
-
+        #######
+         */
 }
