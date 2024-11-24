@@ -1,6 +1,6 @@
 
-#include <estrutura.h>
 
+#include "helper.h"
 #define FIFO_NAME "mainpipe"
 
 /*
@@ -51,83 +51,122 @@ terminar. Os recursos do sistema em uso são libertados.
 int running = 1;
 void handle_signal(int sig)
 {
-        running = 0;
+    printf("Adeus!\n");
+    running = 0;
+        //close(fd);
+        unlink(FIFO_NAME);
 }
 
 int main()
 {
-        /*
-        #########
-        !!!!!!!!!!!!!!! AS MENSAGENS DOS TOPICOS TERÃO QUE INCLUIR ESPAÇOS!!!
-        #########
-        */
-        struct sigaction sa;
-        sa.sa_handler = handle_signal;
-        pid_t res_fork = fork();
+    /*
+    #########
+    !!!!!!!!!!!!!!! AS MENSAGENS DOS TOPICOS TERÃO QUE INCLUIR ESPAÇOS!!!
+    #########
+    */
+    struct sigaction sa;
+    sa.sa_handler = handle_signal;
+    pid_t res_fork = fork();
 
-        if (res_fork == 0)
-        { // Processo Filho
+    if (res_fork == 0)
+    { // Processo Filho
 
-                int r = execl("feed", "feed", NULL);
-                if (r == -1)
-                {
-                        perror("Erro a Executar");
-                }
-        }
-        else
+        int r = execl("feed", "feed", NULL);
+        if (r == -1)
         {
-                // Processo Pai
-                int status;
-                // CRIA O FIFO
-                if (mkfifo(FIFO_NAME, 0666) == -1)
-                { // ve se tem erros na criacao do pipe
-                        if (errno != EEXIST)
-                        {
-                                perror("erro na criacao do named pipe");
-                                exit(EXIT_FAILURE);
-                        }
-                }
-                // abre o fifo em modo leitura
-                int fd = open(FIFO_NAME, O_RDWR);
-                if (fd == -1)
-                {
-                        perror("erro na abertura do named pipe para leitura");
-                        unlink(FIFO_NAME);
-                        exit(EXIT_FAILURE);
-                }
-
-                char buffer[BUFFER_SIZE];
-                int nbytes;
-                int tipo;
-                // vai ler dados do pipe
-                while (running)
-                {       //ler dados do pipe
-                        nbytes = read(fd, tipo, BUFFER_SIZE);
-                        if (nbytes == -1)
-                        {
-                                if (errno != EINTR)
-                                {
-                                        perror("ocorreu um erro na leitura do named pipe");
-                                }
-                                close(fd);
-                                unlink(FIFO_NAME);
-                                exit(EXIT_FAILURE);
-                        }
-                        printf("TESTE -> %d \n", tipo );
-                }
+            perror("Erro a Executar");
+        }
+    }
+    else
+    {
+        // Processo Pai
+        int status;
+        // CRIA O FIFO
+        if (mkfifo(FIFO_NAME, 0666) == -1)
+        { // ve se tem erros na criacao do pipe
+            if (errno != EEXIST)
+            {
+                perror("erro na criacao do named pipe");
+                exit(EXIT_FAILURE);
+            }
+        }
+        // abre o fifo em modo leitura
+        int fd = open(FIFO_NAME, O_RDWR);
+        if (fd == -1)
+        {
+            perror("erro na abertura do named pipe para leitura");
+            unlink(FIFO_NAME);
+            exit(EXIT_FAILURE);
         }
 
-        /*
-        ##############
-        GUARDAR MENSAGENS PERMANENTES QUE AINDA TENHAM TEMPO DE VIDA, EM FICHEIRO!!!
-        SERÁ FICHEIRO TEXTO!!!!!
-        FORMATO DO FICHEIRO:
-        <NOME TOPICO> <USERNAME> <TEMPO DE VIDA RESTANTE> <CORPO DE MENSAGEM>
+        char buffer[BUFFER_SIZE];
+        int nbytes;
+        int tipo;
+        fd_set read_fds;
+        int max_fd = fd;
+        tipoMsg msg;
+        // vai ler dados do pipe
+        while (running)
+        { // ler dados do pipe
 
-        O NOME TOPICO, USER E TEMPO DE VIDA CONTARÃO COMO UMA ÚNICA PALAVRA!!! USAR SPRINTF!!!
+            // Se o FIFO está pronto para leitura
+            FD_ZERO(&read_fds);
+            // Adicionar o FIFO ao conjunto de descritores
+            FD_SET(fd, &read_fds);
+            // Usar select para esperar até que o FIFO tenha dados para ler
+            int ready = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
 
-        OBRIGATORIO : O NOME DO FICHEIRO SERÁ GUARDADO NUMA VARIAVEL DE AMBIENTE MSG_FICH
+            if (ready == -1)
+            {
+                // Se ocorreu erro no select
+                perror("Erro no select");
+                close(fd);
+                unlink(FIFO_NAME);
+                exit(EXIT_FAILURE);
+            }
 
-        #######
-         */
+            if (FD_ISSET(fd, &read_fds))
+            {
+                nbytes = read(fd, &tipo, sizeof(tipo)); //erro aqui 
+                printf("NBTES -> %d\n", nbytes);
+                if (nbytes == -1)
+                {
+                    if (errno != EINTR)
+                    {
+                        perror("ocorreu um erro na leitura do named pipe");
+                    }
+                    close(fd);
+                    unlink(FIFO_NAME);
+                    exit(EXIT_FAILURE);
+                }
+                else if (nbytes == 0)
+                {
+                    printf("Esperando por dados ... \n");
+                    usleep(500000);
+                 
+                }
+                else
+                {
+                    printf("TESTE -> %d \n", tipo);
+           
+                }
+            }
+        }
+            close(fd);
+            unlink(FIFO_NAME);
+    }
+
+    /*
+    ##############
+    GUARDAR MENSAGENS PERMANENTES QUE AINDA TENHAM TEMPO DE VIDA, EM FICHEIRO!!!
+    SERÁ FICHEIRO TEXTO!!!!!
+    FORMATO DO FICHEIRO:
+    <NOME TOPICO> <USERNAME> <TEMPO DE VIDA RESTANTE> <CORPO DE MENSAGEM>
+
+    O NOME TOPICO, USER E TEMPO DE VIDA CONTARÃO COMO UMA ÚNICA PALAVRA!!! USAR SPRINTF!!!
+
+    OBRIGATORIO : O NOME DO FICHEIRO SERÁ GUARDADO NUMA VARIAVEL DE AMBIENTE MSG_FICH
+
+    #######
+     */
 }
