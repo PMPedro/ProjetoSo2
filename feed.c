@@ -19,9 +19,9 @@ User vai interagir atraves de codigos
 
 int main()
 {
-    tipoMsg msg;
-    msg.tipo = 1;
- 
+    all st;
+
+    fflush(stdout);
     if (access(FIFO_NAME, F_OK) != 0)
     {
         printf("O Manager nao se encontra em execucao!\n");
@@ -36,14 +36,26 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    char buffer[BUFFER_SIZE];
+    //char buffer[BUFFER_SIZE];
 
-    ssize_t nbytes = write(fd, &msg, sizeof(msg)); 
-    if (nbytes == -1)
+    ssize_t nbytes;
+    char buffer[300];
+
+    do
     {
-        perror("Erro na escrita no named pipe");
-        close(fd);
-        exit(EXIT_FAILURE);
-    }
-     close(fd);
+        printf("\n<MSG>-> ");
+        fflush(stdin);
+        fgets(buffer, sizeof(buffer), stdin);
+        
+        strcpy(st.msg.message, buffer);
+        write(fd, &st, sizeof(st));
+        if (nbytes == -1)
+        {
+            perror("Erro na escrita no named pipe");
+            close(fd);
+            exit(EXIT_FAILURE);
+        }
+    } while (strcmp("sair", buffer) != 0);
+
+    close(fd);
 }

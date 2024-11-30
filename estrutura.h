@@ -8,6 +8,7 @@
 #include<sys/stat.h>
 #include<sys/types.h>
 #include<sys/wait.h>
+#include <sys/select.h>
 #define BUFFER_SIZE 1024
 // ===============================
 // Mensagens 
@@ -17,21 +18,15 @@
 //================================
 
 
+typedef struct topico
+{
+    char topico[100];
+}topic;
+
 typedef struct innerMsg {
     /*data*/
-
     char message[300];
-
 }innerMsg;
-
-//encapsulamento de mensagem
-// int tipo representará leitr
-typedef struct tipoMsg 
-{
-    /* data */
-    int tipo;  // 0 
-    innerMsg Mensagem; 
-}tipoMsg;
 
 typedef struct userRecog
 {
@@ -41,11 +36,23 @@ typedef struct userRecog
 
 }userRecog;
 
-typedef struct UR
+typedef struct threadhelper
+{
+    int cont [10]; 
+}helper;
+
+typedef struct Alltog
 {
     /* data */
-    int tipo; // 1
-    userRecog User;
-}UR;
+    innerMsg msg; //1
+    topic topico[20]; //2 
+    userRecog user[10]; //3
+    helper help; 
+    int tipo;
+};
+
+
+
+
 
 

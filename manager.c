@@ -1,5 +1,3 @@
-
-
 #include "helper.h"
 #define FIFO_NAME "mainpipe"
 
@@ -44,6 +42,8 @@ terminar. Os recursos do sistema em uso são libertados.
 
 
 
+//fazer uma funcao de threads para 
+    -> receber dados 
 
 
 
@@ -57,6 +57,36 @@ void handle_signal(int sig)
         unlink(FIFO_NAME);
 }
 
+
+//pensar melhor nesta parte 
+
+/*
+ideias 
+    ->FAzer struct gigante que envolva tudo , ver o tipo, ir buscar x daya 
+    > Mandar mts estruturas 
+    > 1 thread por estrutura (acho ma ideia)
+    > pesquisar melhor
+*/
+void *getpipemessages (void *pall){
+    all *ptd = (all*) pall;
+    
+    while (1)
+    {
+            int nbytes = read(ptd->help.fd, &(*ptd), sizeof(*ptd)); 
+            if (nbytes == -1)
+                {
+                    if (errno != EINTR)
+                    {
+                        perror("ocorreu um erro na leitura do named pipe");
+                    }
+                    close(ptd->help.fd);
+                    unlink(FIFO_NAME);
+                    exit(EXIT_FAILURE);
+                }
+                printf("\n-> %s" , ptd->msg.message);
+    }
+}
+
 int main()
 {
     /*
@@ -67,6 +97,7 @@ int main()
     struct sigaction sa;
     sa.sa_handler = handle_signal;
     pid_t res_fork = fork();
+   
 
     if (res_fork == 0)
     { // Processo Filho
@@ -104,32 +135,34 @@ int main()
         int tipo;
         fd_set read_fds;
         int max_fd = fd;
-        tipoMsg msg;
+        all st;
         // vai ler dados do pipe
+
+        pthread_t tid[2];
+        st.help.fd = fd;
+            // Se o FIFO está pronto para leitura
+            FD_ZERO(&st.help.read_fds);
+            // Adicionar o FIFO ao conjunto de descritores
+            FD_SET(st.help.fd, &st.help.read_fds);
+
+        pthread_create(&tid[0], NULL, getpipemessages, &st);
+
+
+
         while (running)
         { // ler dados do pipe
-
+            char aux[20];
+            scanf("%s", &aux); printf("(TESTE)%s", aux); 
             // Se o FIFO está pronto para leitura
             FD_ZERO(&read_fds);
             // Adicionar o FIFO ao conjunto de descritores
             FD_SET(fd, &read_fds);
-            // Usar select para esperar até que o FIFO tenha dados para ler
-            int ready = select(max_fd + 1, &read_fds, NULL, NULL, NULL);
+    
 
-            if (ready == -1)
-            {
-                // Se ocorreu erro no select
-                perror("Erro no select");
-                close(fd);
-                unlink(FIFO_NAME);
-                exit(EXIT_FAILURE);
-            }
-
-            if (FD_ISSET(fd, &read_fds))
-            {
-                nbytes = read(fd, &tipo, sizeof(tipo)); //erro aqui 
-                printf("NBTES -> %d\n", nbytes);
-                if (nbytes == -1)
+        
+              //  nbytes = read(fd, &tipo, sizeof(tipo)); //erro aqui 
+              //  printf("NBTES -> %d\n", nbytes);
+                /*if (nbytes == -1)
                 {
                     if (errno != EINTR)
                     {
@@ -149,8 +182,9 @@ int main()
                 {
                     printf("TESTE -> %d \n", tipo);
            
-                }
-            }
+                } */ 
+
+            
         }
             close(fd);
             unlink(FIFO_NAME);
