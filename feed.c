@@ -5,10 +5,10 @@
 int main(int agrc, char *agrv[])
 {
     all st;
-    char username[100] = {0};
+    char username[100];
     char rcvpipename[100];
     fflush(stdout);
-    int fd2;
+   
 
     // trata do Pipe principal
 
@@ -27,108 +27,125 @@ int main(int agrc, char *agrv[])
         unlink(FIFO_NAME);
         exit(EXIT_FAILURE);
     }
-        printf("Faz1");
+    printf("Faz1");
+    fflush(stdout);
     //////trata da entrada do user///////////
     // prepara-se para criar pipe de leitura
+//PARTE COM ERROS COMECA AQUI
     
-/*
-  printf("<feed> 0 ");
-    pid_t pid = getpid();                                         // ID do processo do usuário
-    snprintf(rcvpipename, sizeof(rcvpipename), RCVPIPENAME, pid); // Cria o nome do pipe com PID
-    printf("<feed> 1 ");
-    if (mkfifo(rcvpipename, 0666) == -1)
-    { // ve se tem erros na criacao do pipe
-        if (errno != EEXIST)
-        {
-            perror("erro na criacao do named pipe");
-            exit(EXIT_FAILURE);
-        }
-    }
-    printf("<feed> 2 ");
-    // abre o fifo em modo leitura
-    fd2 = open(rcvpipename, O_RDONLY);
-    // st.user->thd.fd = fd2;
-    printf("<feed> 3 ");
-
-    if (fd2 == -1)
-    {
-        perror("erro na abertura do named pipe para leitura");
-        unlink(FIFO_NAME);
-        exit(EXIT_FAILURE);
-    }
-    printf("<feed> 4 ");
-    if (agrc < 2)
-    {
-        fflush(stdin);
-        fflush(stdout);
-        // pedir dados ao user
-        printf("\nDiga o seu nome de utilizador :  ");
-        scanf("%s", username); // Limite o tamanho para evitar estouro
-
-
-        printf("%s", username);
-    }
-    else
-    {
-        strcpy(username, agrv[1]);
-    }
-    printf("<feed> 4 ");
-    memset(&st, 0, sizeof(st));
-
-    // preencher struct com dados user e do seu pipe
-    strcpy(st.user[0].username, username);
-    st.tipo = 2;
-    strcpy(st.user[0].rcvpipename, rcvpipename);
-    int bytesn;
-    printf("<feed> 5 ");
-    // enviar ao servidor
-    bytesn = write(fd, &st, sizeof(st));
-    if (bytesn == -1)
-    {
-        perror("Erro na escrita no named pipe");
-        close(fd);
-        exit(EXIT_FAILURE);
-    }
-    printf("<feed> 6 ");
-
-    char auxaux[10];
-
-
-    //int nbytesaux = read(fd2, &auxaux, sizeof(auxaux));
-    int total_bytes = 0;
-    int nbytesaux;
-    while (total_bytes < sizeof(auxaux)) {
-             nbytesaux = read(fd2, ((char*)&auxaux) + total_bytes, sizeof(auxaux) - total_bytes);
-            if (nbytesaux <= 0) {
-                if (errno == EINTR) continue; // Interrupções de sinal
-                perror("Erro na leitura do named pipe");
-                printf("\nERRO NO PIPE, A ENCERRAR...\n");
-                close(fd2);
-                unlink(FIFO_NAME);
+      printf("<feed> 0 ");
+      fflush(stdout);
+        pid_t pid = getpid();                                       
+        snprintf(rcvpipename, sizeof(rcvpipename), RCVPIPENAME, pid); // Cria o nome do pipe com PID
+        printf("<feed> 1 ");
+          fflush(stdout);
+        if (mkfifo(rcvpipename, 0666) == -1)
+        { // ve se tem erros na criacao do pipe
+            if (errno != EEXIST)
+            {
+                perror("erro na criacao do named pipe");
                 exit(EXIT_FAILURE);
             }
-            total_bytes += nbytesaux;
         }
-
-
-
-    if (nbytesaux != sizeof(auxaux))
+        printf("<feed> 2 ");
+          fflush(stdout);
+        // abre o fifo em modo leitura
+           printf("|%s|" , rcvpipename); //ERRO A PARTIR DAQUI 
+             fflush(stdout);
+        if (access(rcvpipename, F_OK) != 0)  //VERIFICA SE O PIPE EXISTE
     {
-        fprintf(stderr, "Erro: Dados incompletos recebidos\n");
-    }
-    printf("<feed> 7 ");
-
-    if (strcmp(auxaux, "false") == 0)
-    {
-        printf("\nERRO NA AUTENTICACAO, a encerrar...");
+        printf("ERRO a aceder a pipe %s!\n",rcvpipename);
         exit(0);
     }
-    printf("<feed> 8 ");
+        int fd2 = open(rcvpipename, O_RDONLY);
+         
+        // st.user->thd.fd = fd2;
+        printf("<feed> 3 ");
+          fflush(stdout);
+
+        if (fd2 == -1)
+        {
+            perror("erro na abertura do named pipe para leitura");
+            unlink(FIFO_NAME);
+            exit(EXIT_FAILURE);
+        }
+        printf("<feed> 4 ");
+          fflush(stdout);
+        if (agrc < 2)
+        {
+            fflush(stdin);
+            fflush(stdout);
+            // pedir dados ao user
+            printf("\nDiga o seu nome de utilizador :  ");
+            scanf("%s", username); // Limite o tamanho para evitar estouro
+
+
+            printf("%s", username);
+        }
+        else
+        {
+            strcpy(username, agrv[1]);
+        }
+        printf("<feed> 4.5 ");
+          fflush(stdout);
+        memset(&st, 0, sizeof(st));
+
+        // preencher struct com dados user e do seu pipe
+        strcpy(st.user[0].username, username);
+        st.tipo = 2;
+        strcpy(st.user[0].rcvpipename, rcvpipename);
+        int bytesn;
+        printf("<feed> 5 ");
+          fflush(stdout);
+        // enviar ao servidor
+        bytesn = write(fd, &st, sizeof(st));
+        if (bytesn == -1)
+        {
+            perror("Erro na escrita no named pipe");
+            close(fd);
+            exit(EXIT_FAILURE);
+        }
+        printf("<feed> 6 ");
+          fflush(stdout);
+
+        char auxaux[10];
+
+
+        //int nbytesaux = read(fd2, &auxaux, sizeof(auxaux));
+        int total_bytes = 0;
+        int nbytesaux;
+        while (total_bytes < sizeof(auxaux)) {
+                 nbytesaux = read(fd2, ((char*)&auxaux) + total_bytes, sizeof(auxaux) - total_bytes);
+                if (nbytesaux <= 0) {
+                    if (errno == EINTR) continue; // Interrupções de sinal
+                    perror("Erro na leitura do named pipe");
+                    printf("\nERRO NO PIPE, A ENCERRAR...\n");
+                    close(fd2);
+                    unlink(FIFO_NAME);
+                    exit(EXIT_FAILURE);
+                }
+                total_bytes += nbytesaux;
+            }
+
+
+
+        if (nbytesaux != sizeof(auxaux))
+        {
+            fprintf(stderr, "Erro: Dados incompletos recebidos\n");
+        }
+        printf("<feed> 7 ");
+          fflush(stdout);
+        if (strcmp(auxaux, "false") == 0)
+        {
+            printf("\nERRO NA AUTENTICACAO, a encerrar...");
+            exit(0);
+        }
+        printf("<feed> 8 ");
+  fflush(stdout);
     
-*/
 
-
-
+    //ACABA AQUI ERRO
+    //MAIS VERIFICAR FUNCAO entradaUser()  no manager
 
     // trata das msg ////////////
     ssize_t nbytes;
@@ -141,28 +158,26 @@ int main(int agrc, char *agrv[])
         printf("\n<MSG>-> ");
         fgets(buffer, sizeof(buffer), stdin);
         // Remove o caractere '\n' que fgets pode adicionar
-        buffer[strcspn(buffer, "\n")] = '\0';  
+        buffer[strcspn(buffer, "\n")] = '\0';
 
-
-      /*  if (sscanf(buffer, "msg %s %d %[^\n]", topico, &duracao, mensagem) == 3)
-        {
-            printf("Tópico: %s\n", topico);
-            printf("Duração: %d\n", duracao);
-            printf("Mensagem: %s\n", mensagem);
-        }
-        else
-        {
-            printf("Formato inválido. Tente novamente.\n");
-        }*/
+        /*  if (sscanf(buffer, "msg %s %d %[^\n]", topico, &duracao, mensagem) == 3)
+          {
+              printf("Tópico: %s\n", topico);
+              printf("Duração: %d\n", duracao);
+              printf("Mensagem: %s\n", mensagem);
+          }
+          else
+          {
+              printf("Formato inválido. Tente novamente.\n");
+          }*/
         // Preencher a estrutura com a mensagem
         memset(&st, 0, sizeof(st));
         strcpy(st.topico[0].msg.message, buffer);
         strcpy(st.topico->nomeTopico, topico);
         st.topico->msg.duracao = duracao;
         st.tipo = 1;
-        printf("\nMSG escrita -> %s" ,st.topico[0].msg.message );
-         printf("\nMSG escritaBuffer -> %s \n" ,buffer );
-        
+        printf("\nMSG escrita -> %s", st.topico[0].msg.message);
+        printf("\nMSG escritaBuffer -> %s \n", buffer);
 
         // Escrever a estrutura inteira no pipe
         size_t message_size = sizeof(st);

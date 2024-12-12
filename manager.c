@@ -9,9 +9,9 @@ void handle_signal(int sig)
     // close(fd);
     unlink(FIFO_NAME);
 }
-void listMessage(all *aux , all *main){
-     //printf("\n <MSG> %s", aux->topico[0].msg.message);
-
+void listMessage(all *aux, all *main)
+{
+    // printf("\n <MSG> %s", aux->topico[0].msg.message);
 }
 
 void entradaUser(all *aux, all *main)
@@ -32,7 +32,6 @@ void entradaUser(all *aux, all *main)
         }
     }
 
-
     // Verificar espaço para logar
     for (int i = 0; i < 10; i++)
     {
@@ -45,7 +44,6 @@ void entradaUser(all *aux, all *main)
             break;
         }
     }
-    
 
     if (posicao == -1)
     {
@@ -53,7 +51,7 @@ void entradaUser(all *aux, all *main)
         podeLogar = false;
     }
     printf("\n<manager> pipe de login: %s\n", aux->user[0].rcvpipename);
-    
+
     // Enviar resposta para o cliente
     int fd = open(aux->user[0].rcvpipename, O_WRONLY);
     if (fd == -1)
@@ -77,11 +75,10 @@ void entradaUser(all *aux, all *main)
     close(fd);
 }
 
-
 void *getpipemessages(void *pall)
 {
     all *ptd = (all *)pall;
-    all aux , aux2; 
+    all aux, aux2;
     memset(&aux2, 0, sizeof(aux2));
     memset(&aux, 0, sizeof(aux2));
     aux.help.fd = ptd->help.fd;
@@ -90,10 +87,13 @@ void *getpipemessages(void *pall)
     while (1)
     {
         total_bytes = 0;
-        while (total_bytes < sizeof(aux2)) {
-            int nbytes = read(ptd->help.fd, ((char*)&aux2) + total_bytes, sizeof(aux2) - total_bytes);
-            if (nbytes <= 0) {
-                if (errno == EINTR) continue; // Interrupções de sinal
+        while (total_bytes < sizeof(aux2))
+        {
+            int nbytes = read(ptd->help.fd, ((char *)&aux2) + total_bytes, sizeof(aux2) - total_bytes);
+            if (nbytes <= 0)
+            {
+                if (errno == EINTR)
+                    continue; // Interrupções de sinal
                 perror("Erro na leitura do named pipe");
                 printf("\nERRO NO PIPE, A ENCERRAR...\n");
                 close(ptd->help.fd);
@@ -102,24 +102,22 @@ void *getpipemessages(void *pall)
             }
             total_bytes += nbytes;
         }
-      
-      
-      aux2.topico[0].msg.message[sizeof(aux2.topico[0].msg.message) - 1] = '\0';
 
-       printf("\n <MSG> %s", aux2.topico[0].msg.message);
-      printf("\n TIPO %d" , aux2.tipo);
-      if(aux2.tipo == 1){
-        listMessage(&aux2, ptd);
-       printf("entra na msg");
-      }
-      if(aux2.tipo == 2){
-        entradaUser(ptd, ptd);
-      }
+        aux2.topico[0].msg.message[sizeof(aux2.topico[0].msg.message) - 1] = '\0';
+
+        printf("\n <MSG> %s", aux2.topico[0].msg.message);
+        printf("\n TIPO %d", aux2.tipo);
+        if (aux2.tipo == 1)
+        {
+            listMessage(&aux2, ptd);
+            printf("entra na msg");
+        }
+        if (aux2.tipo == 2)
+        {
+            entradaUser(ptd, ptd);
+        }
     }
 }
-
-
-
 
 int main()
 {
