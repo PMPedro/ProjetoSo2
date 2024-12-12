@@ -10,52 +10,71 @@ void handle_signal(int sig)
     unlink(FIFO_NAME);
 }
 void listMessage(all *aux , all *main){
-     //printf("\n <MSG> %s", ptd->msg.message);
+     //printf("\n <MSG> %s", aux->topico[0].msg.message);
 
 }
 
-void entradaUser(all *aux , all *main){
-    printf("entra no veri user no manager");
-    //all aux;
-    bool baux = true;
-    int pos;
-    //verifica se o user ja esta logado 
-    for(int i = 0; i < 10; i ++ ){ 
-        if(strcmp(main->user[i].username, aux->user[0].username) == 0){
-                baux = false;     
-                break;  
+void entradaUser(all *aux, all *main)
+{
+    printf("[MANAGER] Verificando autenticação de usuário...\n");
+
+    bool podeLogar = false;
+    int posicao = -1;
+
+    // Verificar se o usuário já está logado
+    for (int i = 0; i < 10; i++)
+    {
+        if (strcmp(main->user[i].username, aux->user[0].username) == 0)
+        {
+            printf("[MANAGER] Usuário já logado: %s\n", aux->user[0].username);
+            podeLogar = false;
+            break;
         }
     }
-    //verifica se ele se pode logar
-    for(int i = 0; i < 10; i ++ ){ 
-        if(strcmp(main->user[i].username, "\0") == 0){
-            baux = true;
-            strcpy(main->user[i].username , aux->user[0].username);
-            strcpy(main->user[i].rcvpipename , aux->user[0].rcvpipename);  
-            pos = i;
+
+
+    // Verificar espaço para logar
+    for (int i = 0; i < 10; i++)
+    {
+        if (main->user[i].username[0] == '\0')
+        {
+            podeLogar = true;
+            strcpy(main->user[i].username, aux->user[0].username);
+            strcpy(main->user[i].rcvpipename, aux->user[0].rcvpipename);
+            posicao = i;
             break;
-        }else
-            baux = false;
-        
+        }
     }
     
- 
 
-    // Abrir o FIFO para escrita
-    printf("<manager>REENVIAR DADOS PARA %s" ,main->user[pos].rcvpipename );
-    int fd = open(main->user[pos].rcvpipename, O_WRONLY);
+    if (posicao == -1)
+    {
+        printf("[MANAGER] Não há espaço para novos usuários.\n");
+        podeLogar = false;
+    }
+    printf("\n<manager> pipe de login: %s\n", aux->user[0].rcvpipename);
+    
+    // Enviar resposta para o cliente
+    int fd = open(aux->user[0].rcvpipename, O_WRONLY);
     if (fd == -1)
     {
-        perror("Erro na abertura do named pipe para escrita");
-        unlink(FIFO_NAME);
-        exit(EXIT_FAILURE);
+        perror("[MANAGER] Erro ao abrir pipe de resposta");
+        return;
     }
-    char fts[10];
-    if(baux == false) strcpy(fts,"false" ) ;
-            else strcpy(fts,"true");
-     int bytesn = write(fd, &fts , sizeof(fts));
 
+    char resposta[10] = {0};
+    strcpy(resposta, podeLogar ? "true" : "false");
 
+    if (write(fd, resposta, sizeof(resposta)) == -1)
+    {
+        perror("[MANAGER] Erro ao enviar resposta para o cliente");
+    }
+    else
+    {
+        printf("[MANAGER] Resposta enviada para o cliente: %s\n", resposta);
+    }
+
+    close(fd);
 }
 
 
@@ -63,35 +82,38 @@ void *getpipemessages(void *pall)
 {
     all *ptd = (all *)pall;
     all aux , aux2; 
+    memset(&aux2, 0, sizeof(aux2));
+    memset(&aux, 0, sizeof(aux2));
     aux.help.fd = ptd->help.fd;
+    int total_bytes;
 
     while (1)
     {
-        int nbytes = read(ptd->help.fd, &aux2, sizeof(aux2));
-        ptd->help.fd = aux.help.fd;
-        if (nbytes != sizeof(aux2))
-        {
-            fprintf(stderr, "Erro: Dados incompletos recebidos\n");
-        }
-        if (nbytes == -1)
-        {
-            if (errno != EINTR)
-            {
-                perror("ocorreu um erro na leitura do named pipe");
+        total_bytes = 0;
+        while (total_bytes < sizeof(aux2)) {
+            int nbytes = read(ptd->help.fd, ((char*)&aux2) + total_bytes, sizeof(aux2) - total_bytes);
+            if (nbytes <= 0) {
+                if (errno == EINTR) continue; // Interrupções de sinal
+                perror("Erro na leitura do named pipe");
+                printf("\nERRO NO PIPE, A ENCERRAR...\n");
+                close(ptd->help.fd);
+                unlink(FIFO_NAME);
+                exit(EXIT_FAILURE);
             }
-            printf("\nERRO NO PIPE, A ENCERRAR...");
-            memset(&aux2, 0, sizeof(aux2));
-            close(ptd->help.fd);
-            unlink(FIFO_NAME);
-            exit(EXIT_FAILURE);
+            total_bytes += nbytes;
         }
-      //  printf("\n-> %s", ptd->msg.message);
-      printf("%d" , aux2.tipo);
+      
+      
+      aux2.topico[0].msg.message[sizeof(aux2.topico[0].msg.message) - 1] = '\0';
+
+       printf("\n <MSG> %s", aux2.topico[0].msg.message);
+      printf("\n TIPO %d" , aux2.tipo);
       if(aux2.tipo == 1){
         listMessage(&aux2, ptd);
+       printf("entra na msg");
       }
       if(aux2.tipo == 2){
-        entradaUser(&aux2, ptd);
+        entradaUser(ptd, ptd);
       }
     }
 }

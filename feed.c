@@ -27,9 +27,12 @@ int main(int agrc, char *agrv[])
         unlink(FIFO_NAME);
         exit(EXIT_FAILURE);
     }
-
+        printf("Faz1");
     //////trata da entrada do user///////////
     // prepara-se para criar pipe de leitura
+    
+/*
+  printf("<feed> 0 ");
     pid_t pid = getpid();                                         // ID do processo do usuário
     snprintf(rcvpipename, sizeof(rcvpipename), RCVPIPENAME, pid); // Cria o nome do pipe com PID
     printf("<feed> 1 ");
@@ -43,7 +46,7 @@ int main(int agrc, char *agrv[])
     }
     printf("<feed> 2 ");
     // abre o fifo em modo leitura
-    fd2 = open(rcvpipename, O_RDWR);
+    fd2 = open(rcvpipename, O_RDONLY);
     // st.user->thd.fd = fd2;
     printf("<feed> 3 ");
 
@@ -56,11 +59,12 @@ int main(int agrc, char *agrv[])
     printf("<feed> 4 ");
     if (agrc < 2)
     {
+        fflush(stdin);
+        fflush(stdout);
         // pedir dados ao user
-        
-        fflush(stdin);   
         printf("\nDiga o seu nome de utilizador :  ");
-        scanf("%99s", username); // Limite o tamanho para evitar estouro
+        scanf("%s", username); // Limite o tamanho para evitar estouro
+
 
         printf("%s", username);
     }
@@ -88,7 +92,26 @@ int main(int agrc, char *agrv[])
     printf("<feed> 6 ");
 
     char auxaux[10];
-    int nbytesaux = read(fd2, &auxaux, sizeof(auxaux));
+
+
+    //int nbytesaux = read(fd2, &auxaux, sizeof(auxaux));
+    int total_bytes = 0;
+    int nbytesaux;
+    while (total_bytes < sizeof(auxaux)) {
+             nbytesaux = read(fd2, ((char*)&auxaux) + total_bytes, sizeof(auxaux) - total_bytes);
+            if (nbytesaux <= 0) {
+                if (errno == EINTR) continue; // Interrupções de sinal
+                perror("Erro na leitura do named pipe");
+                printf("\nERRO NO PIPE, A ENCERRAR...\n");
+                close(fd2);
+                unlink(FIFO_NAME);
+                exit(EXIT_FAILURE);
+            }
+            total_bytes += nbytesaux;
+        }
+
+
+
     if (nbytesaux != sizeof(auxaux))
     {
         fprintf(stderr, "Erro: Dados incompletos recebidos\n");
@@ -101,6 +124,11 @@ int main(int agrc, char *agrv[])
         exit(0);
     }
     printf("<feed> 8 ");
+    
+*/
+
+
+
 
     // trata das msg ////////////
     ssize_t nbytes;
@@ -111,8 +139,12 @@ int main(int agrc, char *agrv[])
     {
         // Solicitar a mensagem ao usuário
         printf("\n<MSG>-> ");
-        scanf("%s", buffer);
-        if (sscanf(buffer, "msg %s %d %[^\n]", topico, &duracao, mensagem) == 3)
+        fgets(buffer, sizeof(buffer), stdin);
+        // Remove o caractere '\n' que fgets pode adicionar
+        buffer[strcspn(buffer, "\n")] = '\0';  
+
+
+      /*  if (sscanf(buffer, "msg %s %d %[^\n]", topico, &duracao, mensagem) == 3)
         {
             printf("Tópico: %s\n", topico);
             printf("Duração: %d\n", duracao);
@@ -121,14 +153,19 @@ int main(int agrc, char *agrv[])
         else
         {
             printf("Formato inválido. Tente novamente.\n");
-        }
+        }*/
         // Preencher a estrutura com a mensagem
         memset(&st, 0, sizeof(st));
-        strcpy(st.topico->msg.message, mensagem);
+        strcpy(st.topico[0].msg.message, buffer);
         strcpy(st.topico->nomeTopico, topico);
         st.topico->msg.duracao = duracao;
+        st.tipo = 1;
+        printf("\nMSG escrita -> %s" ,st.topico[0].msg.message );
+         printf("\nMSG escritaBuffer -> %s \n" ,buffer );
+        
 
         // Escrever a estrutura inteira no pipe
+        size_t message_size = sizeof(st);
         nbytes = write(fd, &st, sizeof(st));
         if (nbytes == -1)
         {
