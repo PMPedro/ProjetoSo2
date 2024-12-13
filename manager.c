@@ -16,28 +16,33 @@ void listMessage(all *aux, all *main)
 
 void entradaUser(all *aux, all *main)
 {
+    bool verifica = true;
+    char resposta[20];
     printf("[MANAGER] Verificando autenticação de usuário...\n");
+    printf("%s", aux->user[0].username);
 
-    bool podeLogar = false;
+    bool space = false, alExist = false;
     int posicao = -1;
 
     // Verificar se o usuário já está logado
     for (int i = 0; i < 10; i++)
     {
+        printf("\n==COMPARANDO %s  |  %s==" , main->user[i].username ,aux->user[0].username );
         if (strcmp(main->user[i].username, aux->user[0].username) == 0)
         {
             printf("[MANAGER] Usuário já logado: %s\n", aux->user[0].username);
-            podeLogar = false;
+            verifica = false;
             break;
+            
         }
     }
-
+    if(verifica){
     // Verificar espaço para logar
     for (int i = 0; i < 10; i++)
     {
-        if (main->user[i].username[0] == '\0')
+        if (strlen(main->user[i].username) == 0)
         {
-            podeLogar = true;
+            
             strcpy(main->user[i].username, aux->user[0].username);
             strcpy(main->user[i].rcvpipename, aux->user[0].rcvpipename);
             posicao = i;
@@ -45,12 +50,15 @@ void entradaUser(all *aux, all *main)
         }
     }
 
+    }
+
     if (posicao == -1)
     {
         printf("[MANAGER] Não há espaço para novos usuários.\n");
-        podeLogar = false;
+       verifica = false;
+        
     }
-    printf("\n<manager> pipe de login: %s\n", aux->user[0].rcvpipename);
+ 
 
     // Enviar resposta para o cliente
     int fd = open(aux->user[0].rcvpipename, O_WRONLY);
@@ -60,8 +68,13 @@ void entradaUser(all *aux, all *main)
         return;
     }
 
-    char resposta[10] = {0};
-    strcpy(resposta, podeLogar ? "true" : "false");
+if(verifica){
+    strncpy(resposta, "true", sizeof(resposta) - 1);
+}else{
+    strncpy(resposta, "false", sizeof(resposta) - 1);
+
+}
+        
 
     if (write(fd, resposta, sizeof(resposta)) == -1)
     {
@@ -114,7 +127,7 @@ void *getpipemessages(void *pall)
         }
         if (aux2.tipo == 2)
         {
-            entradaUser(ptd, ptd);
+            entradaUser(&aux2, ptd);
         }
     }
 }
