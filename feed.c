@@ -53,11 +53,13 @@ int main(int agrc, char *agrv[])
            printf("|%s|" , rcvpipename); //ERRO A PARTIR DAQUI 
              fflush(stdout);
         if (access(rcvpipename, F_OK) != 0)  //VERIFICA SE O PIPE EXISTE
-    {
-        printf("ERRO a aceder a pipe %s!\n",rcvpipename);
-        exit(0);
-    }
-        int fd2 = open(rcvpipename, O_RDONLY);
+        {
+            printf("ERRO a aceder a pipe %s!\n",rcvpipename);
+            exit(0);
+        }
+
+
+        int fd2 = open(rcvpipename, O_RDWR);
          
         // st.user->thd.fd = fd2;
         printf("<feed> 3 ");
@@ -69,6 +71,8 @@ int main(int agrc, char *agrv[])
             unlink(FIFO_NAME);
             exit(EXIT_FAILURE);
         }
+
+
         printf("<feed> 4 ");
           fflush(stdout);
         if (agrc < 2)

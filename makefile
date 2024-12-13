@@ -19,4 +19,4 @@ feed: feed.o
 
 # Limpeza de arquivos intermediários e binários
 clean:
-	rm -f *.o manager feed
+	rm -f *.o manager feed mainpipe pipe*

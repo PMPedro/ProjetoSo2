@@ -55,4 +55,12 @@ typedef struct Alltog
 
 
 
+typedef struct{
+    int tipo; 
+    union{ // 
+
+    }
+}PEDIDO;
+
+
 
