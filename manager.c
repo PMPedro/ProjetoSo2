@@ -114,7 +114,7 @@ void *getpipemessages(void *pall)
         }
         if (aux2.tipo == 2)
         {
-            entradaUser(ptd, ptd);
+            entradaUser(&aux2, ptd);
         }
     }
 }
