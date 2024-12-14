@@ -11,6 +11,7 @@
 #include <sys/select.h>
 #include "pthread.h"
 #include <stdbool.h>
+
 #define BUFFER_SIZE 1024
 // ===============================
 // Mensagens 
@@ -31,6 +32,7 @@ typedef struct topico
     char nomeTopico[100];
     innerMsg msg; 
     innerMsg msgPersistente[5];
+    int locked;
 }topic;
 
 
@@ -60,10 +62,14 @@ typedef struct Alltog
     //coisas pipe -> nenhum (default)
     // tratar coisas user = 3 , 4 (restantes que forem necessarios )
 
-    topic topico[20];  
+    topic topico[20];  //topicos gerais criados
     userRecog user[10]; 
     helper help; 
     int tipo;
+    char userRemove[40];
+    //nome
    
     
 }all;
+
+

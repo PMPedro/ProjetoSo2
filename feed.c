@@ -1,10 +1,12 @@
-#include "helper.h"
+#include "funcoesHelper.c"
 #define FIFO_NAME "mainpipe"
 #define RCVPIPENAME "pipe%d"
 
 int main(int agrc, char *agrv[])
 {
-  all st;
+  all st ;
+  initializeAll(&st);
+
   char username[100];
   char rcvpipename[100];
   fflush(stdout);
@@ -26,17 +28,17 @@ int main(int agrc, char *agrv[])
     unlink(FIFO_NAME);
     exit(EXIT_FAILURE);
   }
-  printf("Faz1");
+  
   fflush(stdout);
   //////trata da entrada do user///////////
   // prepara-se para criar pipe de leitura
   // PARTE COM ERROS COMECA AQUI
 
-  printf("<feed> 0 ");
+  
   fflush(stdout);
   pid_t pid = getpid();
   snprintf(rcvpipename, sizeof(rcvpipename), RCVPIPENAME, pid); // Cria o nome do pipe com PID
-  printf("<feed> 1 ");
+  
   fflush(stdout);
   if (mkfifo(rcvpipename, 0666) == -1)
   { // ve se tem erros na criacao do pipe
@@ -46,7 +48,7 @@ int main(int agrc, char *agrv[])
       exit(EXIT_FAILURE);
     }
   }
-  printf("<feed> 2 ");
+  
   fflush(stdout);
   // abre o fifo em modo leitura
   printf("|%s|", rcvpipename); // ERRO A PARTIR DAQUI
@@ -60,7 +62,7 @@ int main(int agrc, char *agrv[])
   int fd2 = open(rcvpipename, O_RDWR);
 
   // st.user->thd.fd = fd2;
-  printf("<feed> 3 ");
+  
   fflush(stdout);
 
   if (fd2 == -1)
@@ -70,7 +72,7 @@ int main(int agrc, char *agrv[])
     exit(EXIT_FAILURE);
   }
 
-  printf("<feed> 4 ");
+  
   fflush(stdout);
   if (agrc < 2)
   {
@@ -88,7 +90,7 @@ int main(int agrc, char *agrv[])
   {
     strcpy(username, agrv[1]);
   }
-  printf("<feed> 4.5 ");
+  
   fflush(stdout);
   memset(&st, 0, sizeof(st));
 
@@ -97,7 +99,7 @@ int main(int agrc, char *agrv[])
   st.tipo = 2;
   strcpy(st.user[0].rcvpipename, rcvpipename);
   int bytesn;
-  printf("<feed> 5 ");
+  
   fflush(stdout);
   // enviar ao servidor
   bytesn = write(fd, &st, sizeof(st));
@@ -107,7 +109,7 @@ int main(int agrc, char *agrv[])
     close(fd);
     exit(EXIT_FAILURE);
   }
-  printf("<feed> 6 ");
+  
   fflush(stdout);
 
   char auxaux[20];

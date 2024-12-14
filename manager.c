@@ -1,4 +1,4 @@
-#include "helper.h"
+#include "funcoesHelper.c"
 #define FIFO_NAME "mainpipe"
 int running = 1;
 
@@ -18,8 +18,6 @@ void entradaUser(all *aux, all *main)
 {
     bool verifica = true;
     char resposta[20];
-    printf("[MANAGER] Verificando autenticação de usuário...\n");
-    printf("%s", aux->user[0].username);
 
     bool space = false, alExist = false;
     int posicao = -1;
@@ -27,38 +25,35 @@ void entradaUser(all *aux, all *main)
     // Verificar se o usuário já está logado
     for (int i = 0; i < 10; i++)
     {
-        printf("\n==COMPARANDO %s  |  %s==" , main->user[i].username ,aux->user[0].username );
+
         if (strcmp(main->user[i].username, aux->user[0].username) == 0)
         {
             printf("[MANAGER] Usuário já logado: %s\n", aux->user[0].username);
             verifica = false;
             break;
-            
         }
     }
-    if(verifica){
-    // Verificar espaço para logar
-    for (int i = 0; i < 10; i++)
+    if (verifica)
     {
-        if (strlen(main->user[i].username) == 0)
+        // Verificar espaço para logar
+        for (int i = 0; i < 10; i++)
         {
-            
-            strcpy(main->user[i].username, aux->user[0].username);
-            strcpy(main->user[i].rcvpipename, aux->user[0].rcvpipename);
-            posicao = i;
-            break;
-        }
-    }
+            if (strlen(main->user[i].username) == 0)
+            {
 
+                strcpy(main->user[i].username, aux->user[0].username);
+                strcpy(main->user[i].rcvpipename, aux->user[0].rcvpipename);
+                posicao = i;
+                break;
+            }
+        }
     }
 
     if (posicao == -1)
     {
         printf("[MANAGER] Não há espaço para novos usuários.\n");
-       verifica = false;
-        
+        verifica = false;
     }
- 
 
     // Enviar resposta para o cliente
     int fd = open(aux->user[0].rcvpipename, O_WRONLY);
@@ -68,13 +63,14 @@ void entradaUser(all *aux, all *main)
         return;
     }
 
-if(verifica){
-    strncpy(resposta, "true", sizeof(resposta) - 1);
-}else{
-    strncpy(resposta, "false", sizeof(resposta) - 1);
-
-}
-        
+    if (verifica)
+    {
+        strncpy(resposta, "true", sizeof(resposta) - 1);
+    }
+    else
+    {
+        strncpy(resposta, "false", sizeof(resposta) - 1);
+    }
 
     if (write(fd, resposta, sizeof(resposta)) == -1)
     {
@@ -146,11 +142,11 @@ int main()
     if (res_fork == 0)
     { // Processo Filho
 
-        int r = execl("feed", "feed", NULL);
+      /*  int r = execl("feed", "feed", NULL);
         if (r == -1)
         {
             perror("Erro a Executar");
-        }
+        }*/
     }
     else
     {
@@ -180,6 +176,7 @@ int main()
         fd_set read_fds;
         int max_fd = fd;
         all st;
+        initializeAll(&st);
         // vai ler dados do pipe
 
         pthread_t tid[2];
@@ -192,39 +189,59 @@ int main()
         pthread_create(&tid[0], NULL, getpipemessages, &st);
 
         while (running)
-        { // ler dados do pipe
-            char aux[20];
-            scanf("%s", &aux);
-            // printf("(TESTE)%s", aux);
-            // Se o FIFO está pronto para leitura
-            FD_ZERO(&read_fds);
-            // Adicionar o FIFO ao conjunto de descritores
-            FD_SET(fd, &read_fds);
-
-            //  nbytes = read(fd, &tipo, sizeof(tipo)); //erro aqui
-            //  printf("NBTES -> %d\n", nbytes);
-            /*if (nbytes == -1)
+        {
+            char word1[25] = "", word2[25] = "";
+            char comando[50];
+            fgets(comando, sizeof(comando), stdin);
+            comando[strcspn(comando, "\n")] = '\0';
+            char *token = strtok(comando, " ");
+            if (token != NULL)
             {
-                if (errno != EINTR)
+                strncpy(word1, token, sizeof(word1) - 1);
+                word1[sizeof(word1) - 1] = '\0';
+
+                token = strtok(NULL, " ");
+                if (token != NULL)
                 {
-                    perror("ocorreu um erro na leitura do named pipe");
+                    strncpy(word2, token, sizeof(word2) - 1);
+                    word2[sizeof(word2) - 1] = '\0';
                 }
-                close(fd);
-                unlink(FIFO_NAME);
-                exit(EXIT_FAILURE);
             }
-            else if (nbytes == 0)
+            if (strcmp(word1, "close") == 0)
             {
-                printf("Esperando por dados ... \n");
-                usleep(500000);
-
+                break;
             }
-            else
+            if (strcmp(word1, "lock") == 0)
             {
-                printf("TESTE -> %d \n", tipo);
+                if (strlen(word2) != 0)
+                {
+                    lockTopic(word2, &st);
+                }
+                else
+                    printf("\nERRO na sintaxe");
+            }
 
-            } */
+            if (strcmp(word1, "unlock") == 0)
+            {
+                if (strlen(word2) != 0)
+                {
+                    unlockTopic(word2, &st);
+                }
+                else
+                    printf("\nERRO na sintaxe");
+            }
+
+            if(strcmp(word1, "topics") == 0){
+                listTopics(&st);
+            }
+            if(strcmp(word1, "users") == 0){
+                listUsers(&st);
+            }
+            
+
         }
+
+        printf("A fechar...");
         close(fd);
         unlink(FIFO_NAME);
     }
