@@ -128,10 +128,14 @@ void entradaUser(all *aux, all *main){
     else
     {
         printf("[MANAGER] Resposta enviada para o cliente: %s\n", resposta);
+        fflush(stdin);
     }
 
     close(fd);
+    return;
 }
+
+
 
 void *getpipemessages(void *pall)
 {
@@ -141,16 +145,23 @@ void *getpipemessages(void *pall)
     memset(&aux, 0, sizeof(aux2));
     aux.help.fd = ptd->help.fd;
     int total_bytes;
+    printf("chegou\n");
+    fflush (stdout);
 
     while (1){
         total_bytes = 0;
-
+        printf("chegou v2 \n");
+        
         while (total_bytes < sizeof(aux2)){
-
+            printf("chegou v3 bytes: %d \t tamanh aux2: %d\n", total_bytes, sizeof(aux2));
+            
             int nbytes = read(ptd->help.fd, ((char *)&aux2) + total_bytes, sizeof(aux2) - total_bytes);
+            printf("chegou v4 %d \n", nbytes);
             if (nbytes <= 0){
-                if (errno == EINTR)
+                if (errno == EINTR){
+                     printf("chegou v3 %d \n", sizeof(aux2));
                     continue; // Interrupções de sinal
+                }
                 perror("Erro na leitura do named pipe");
                 printf("\nERRO NO PIPE, A ENCERRAR...\n");
                 close(ptd->help.fd);
@@ -161,18 +172,23 @@ void *getpipemessages(void *pall)
             total_bytes += nbytes;
         }
 
-        aux2.topico[0].msg.message[sizeof(aux2.topico[0].msg.message) - 1] = '\0';
-
+        printf("total bytes???? %d \n",total_bytes);
+        //fflush(stdout);
+        //fflush(stdin);
+        //aux2.topico[0].msg.message[sizeof(aux2.topico[0].msg.message) - 1] = '\0';
+        //printf("tipo mensagem: %d", aux2.tipo);
         
-        printf("\n <MSG> %s", aux2.topico[0].msg.message);
-        printf("\n TIPO %d", aux2.tipo);
-        printf("\n TOPICO RECEBIDO: %s", aux2.topico[0].nomeTopico);
+        //printf("\n <MSG> %s", aux2.topico[0].msg.message);
+        //printf("\n TIPO %d", aux2.tipo);
+        //printf("\n TOPICO RECEBIDO: %s", aux2.topico[0].nomeTopico);
+        //fflush(stdout);
+        
         switch (aux2.tipo){
             case 1: // envia mensagem
             //percorre todos os utilizadores
             //dentro dos utilizadores, verifica se tem o topico
             //escreve para o pipe respetivo
-            processaEnvioMensagens(ptd, aux2);
+                processaEnvioMensagens(ptd, aux2);
             /*printf("\ntamanho: %d\n",sizeof(&ptd->topico[0]));
             printf("\nome do topico recebido: %d\n",sizeof(&ptd->topico[0].nomeTopico));
             //aux2.topico[i].nomeTopico
@@ -188,15 +204,17 @@ void *getpipemessages(void *pall)
                     }*/
 
                 
-                    break;
+                break;
                 //}
 
 
 
-            break;
+            
 
             case 2: // login
+                printf("aux2 tipo: %d \n", aux2.tipo);
                 entradaUser(&aux2, ptd);
+                fflush(stdin);
                 break;
 
             case 3://subscribe
@@ -213,18 +231,12 @@ void *getpipemessages(void *pall)
                 /// <<<< COMO ENVIAR SINAL?!
                 // vai ser neccessário de remover do array
                 break;
+            default:
+                printf("ta num loop?!\n");
+                break;
         }
-
-
-        /*if (aux2.tipo == 1)
-        {
-            listMessage(&aux2, ptd);
-            printf("entra na msg");
-        }
-        if (aux2.tipo == 2)
-        {
-        }*/
     }
+    printf("DAFUUUUUUCK=! \n");
 }
 
 
@@ -255,11 +267,11 @@ int main()
     if (res_fork == 0)
     { // Processo Filho
 
-        /*int r = execl("feed", "feed", NULL);
+        int r = execl("feed", "feed", NULL);
         if (r == -1)
         {
             perror("Erro a Executar");
-        }*/
+        }
     }
     else
     {
@@ -298,47 +310,68 @@ int main()
         FD_ZERO(&st.help.read_fds);
         // Adicionar o FIFO ao conjunto de descritores
         FD_SET(st.help.fd, &st.help.read_fds);
-
+        
         pthread_create(&tid[0], NULL, getpipemessages, &st);
 
         while (running)
-        { // ler dados do pipe
-            char aux[20];
-            scanf("%s", &aux);
-            // printf("(TESTE)%s", aux);
-            // Se o FIFO está pronto para leitura
-            FD_ZERO(&read_fds);
-            // Adicionar o FIFO ao conjunto de descritores
-            FD_SET(fd, &read_fds);
+        {
 
-            //  nbytes = read(fd, &tipo, sizeof(tipo)); //erro aqui
-            //  printf("NBTES -> %d\n", nbytes);
-            /*if (nbytes == -1)
+            /*char word1[25] = "", word2[25] = "";
+            char comando[50];
+            fgets(comando, sizeof(comando), stdin);
+            comando[strcspn(comando, "\n")] = '\0';
+            char *token = strtok(comando, " ");
+            if (token != NULL)
             {
-                if (errno != EINTR)
+                strncpy(word1, token, sizeof(word1) - 1);
+                word1[sizeof(word1) - 1] = '\0';
+
+                token = strtok(NULL, " ");
+                if (token != NULL)
                 {
-                    perror("ocorreu um erro na leitura do named pipe");
+                    strncpy(word2, token, sizeof(word2) - 1);
+                    word2[sizeof(word2) - 1] = '\0';
                 }
-                close(fd);
-                unlink(FIFO_NAME);
-                exit(EXIT_FAILURE);
             }
-            else if (nbytes == 0)
+            if (strcmp(word1, "close") == 0)
             {
-                printf("Esperando por dados ... \n");
-                usleep(500000);
-
+                break;
             }
-            else
+            if (strcmp(word1, "lock") == 0)
             {
-                printf("TESTE -> %d \n", tipo);
+                if (strlen(word2) != 0)
+                {
+                    lockTopic(word2, &st);
+                }
+                else
+                    printf("\nERRO na sintaxe");
+            }
 
-            } */
+            if (strcmp(word1, "unlock") == 0)
+            {
+                if (strlen(word2) != 0)
+                {
+                    unlockTopic(word2, &st);
+                }
+                else
+                    printf("\nERRO na sintaxe");
+            }
+
+            if(strcmp(word1, "topics") == 0){
+                listTopics(&st);
+            }
+            if(strcmp(word1, "users") == 0){
+                listUsers(&st);
+            }
+            */
+
         }
+
+        printf("A fechar...");
         close(fd);
         unlink(FIFO_NAME);
     }
-
+    printf("acabou?");
     /*
     ##############
     GUARDAR MENSAGENS PERMANENTES QUE AINDA TENHAM TEMPO DE VIDA, EM FICHEIRO!!!
