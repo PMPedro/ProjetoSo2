@@ -19,4 +19,6 @@ feed: feed.o
 
 # Limpeza de arquivos intermediários e binários
 clean:
+	@find . -name 'pipe[0-9][0-9][0-9][0-9]' -exec unlink {} \; || echo "nenhum pipe encontrado."
+	unlink mainpipe
 	rm -f *.o manager feed mainpipe pipe*

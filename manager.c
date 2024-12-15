@@ -1,8 +1,84 @@
-#include "helper.h"
-
+//#include "helper.h"
+#include<stdio.h>
+#include<stdlib.h>
+#include<signal.h>
+#include<unistd.h>
+#include<errno.h>
+#include<string.h>
+#include<fcntl.h>
+#include<sys/stat.h>
+#include<sys/types.h>
+#include<sys/wait.h>
+#include <sys/select.h>
+#include <pthread.h>
+#include <stdbool.h>
+#define BUFFER_SIZE 1024
 #pragma
 #define FIFO_NAME "mainpipe"
 int running = 1;
+
+
+typedef struct innerMsg {
+    /*data*/
+    char message[300];
+    int duracao; 
+}innerMsg;
+
+
+typedef struct topico
+{
+    char nomeTopico[100];
+    innerMsg msg; 
+    innerMsg msgPersistente[5];
+    int locked;
+}topic;
+
+
+
+typedef struct userRecog
+{
+    /* data */
+    char username[100]; 
+    char rcvpipename[100]; //cada user vai ter um pipe associado a ele , para receber os dados , o nome do pipe vai ser enviado para o server
+    topic topicosInscritos[20];
+   // helper thd;
+
+}userRecog;
+
+typedef struct threadhelper
+{
+    int cont [10]; 
+    fd_set read_fds;
+    int fd;
+}helper;
+
+typedef struct Alltog
+{
+    /* data */
+    //Enviar msg = 1 ; 
+    //User inicia = 2 ; 
+    //coisas pipe -> nenhum (default)
+    // tratar coisas user = 3 , 4 (restantes que forem necessarios )
+
+    topic topico[20];  
+    userRecog user[10]; 
+    helper help; 
+    int tipo;
+   
+    
+}all;
+
+typedef struct{
+    char user[100];
+    char message[300];
+    char nometopico[100];
+    char pipe[30];
+    int tipo;
+}Mensagem;
+
+
+
+
 
 
 void listMessage(all *aux, all *main)
@@ -73,6 +149,8 @@ void handle_signal(int sig)
 }
 
 
+
+
 void entradaUser(all *aux, all *main){
     printf("[MANAGER] Verificando autenticação de usuário...\n");
 
@@ -112,6 +190,8 @@ void entradaUser(all *aux, all *main){
 
     // Enviar resposta para o cliente
     int fd = open(aux->user[0].rcvpipename, O_WRONLY);
+    printf("abriu indevidamente???");
+  
     if (fd == -1)
     {
         perror("[MANAGER] Erro ao abrir pipe de resposta");
@@ -137,82 +217,67 @@ void entradaUser(all *aux, all *main){
 
 
 
+
+
+
+
+
+
 void *getpipemessages(void *pall)
 {
+
+    
     all *ptd = (all *)pall;
     all aux, aux2;
+    Mensagem mensagem;
+
+
     memset(&aux2, 0, sizeof(aux2));
     memset(&aux, 0, sizeof(aux2));
+    printf("tamanho all: %d ", sizeof(ptd));
     aux.help.fd = ptd->help.fd;
+
+    
     int total_bytes;
-    printf("chegou\n");
-    fflush (stdout);
 
     while (1){
         total_bytes = 0;
-        printf("chegou v2 \n");
         
-        while (total_bytes < sizeof(aux2)){
-            printf("chegou v3 bytes: %d \t tamanh aux2: %d\n", total_bytes, sizeof(aux2));
-            
-            int nbytes = read(ptd->help.fd, ((char *)&aux2) + total_bytes, sizeof(aux2) - total_bytes);
-            printf("chegou v4 %d \n", nbytes);
-            if (nbytes <= 0){
-                if (errno == EINTR){
-                     printf("chegou v3 %d \n", sizeof(aux2));
-                    continue; // Interrupções de sinal
-                }
-                perror("Erro na leitura do named pipe");
-                printf("\nERRO NO PIPE, A ENCERRAR...\n");
-                close(ptd->help.fd);
-                unlink(FIFO_NAME);
-                exit(EXIT_FAILURE);
-            }
+        printf("chegou v2 \n");
 
-            total_bytes += nbytes;
+        //total_bytes = read(ptd->help.fd, &aux2 , sizeof(all) );
+        total_bytes = read(ptd->help.fd, &mensagem , sizeof(Mensagem) );
+
+        printf("chegou v3. tipo de mensagem: %d \n", mensagem.tipo);
+
+        if (total_bytes <= 0){
+            if (errno == EINTR){
+                printf("chegou v4 %d \n", sizeof(aux2));
+                continue; // Interrupções de sinal
+            }
+            perror("Erro na leitura do named pipe");
+            printf("\nERRO NO PIPE, A ENCERRAR...\n");
+            close(ptd->help.fd);
+            unlink(FIFO_NAME);
+            exit(EXIT_FAILURE);
         }
+            
+            
+        
 
         printf("total bytes???? %d \n",total_bytes);
-        //fflush(stdout);
-        //fflush(stdin);
-        //aux2.topico[0].msg.message[sizeof(aux2.topico[0].msg.message) - 1] = '\0';
-        //printf("tipo mensagem: %d", aux2.tipo);
         
-        //printf("\n <MSG> %s", aux2.topico[0].msg.message);
-        //printf("\n TIPO %d", aux2.tipo);
-        //printf("\n TOPICO RECEBIDO: %s", aux2.topico[0].nomeTopico);
-        //fflush(stdout);
         
-        switch (aux2.tipo){
-            case 1: // envia mensagem
-            //percorre todos os utilizadores
-            //dentro dos utilizadores, verifica se tem o topico
-            //escreve para o pipe respetivo
-                processaEnvioMensagens(ptd, aux2);
-            /*printf("\ntamanho: %d\n",sizeof(&ptd->topico[0]));
-            printf("\nome do topico recebido: %d\n",sizeof(&ptd->topico[0].nomeTopico));
-            //aux2.topico[i].nomeTopico
-                for(int i = 0;i <20; i++){
-                    if( strcmp(&ptd->topico[i].nomeTopico, ".") == 0 ){
-                        printf("encontrou slot vazia\n");
-                        strcpy(&ptd->topico[i].nomeTopico,aux2.topico[0].nomeTopico);
-                        printf("all topico %s", &ptd->topico[i].nomeTopico);
-                        fflush(stdout);
-                    }else if (strcmp(&ptd->topico[i].nomeTopico,aux2.topico[0].nomeTopico) == 0){
-                        printf("encontrou topico igual!!!!\n");
-                        // percorrer pipes e enviar mensagens!!!
-                    }*/
-
-                
-                break;
-                //}
-
-
-
+        switch (mensagem.tipo){
             
+            case 1: 
+                printf("\ntipo: %d",aux2.tipo);
+                processaEnvioMensagens(ptd, aux2);
+                break;
+
 
             case 2: // login
-                printf("aux2 tipo: %d \n", aux2.tipo);
+                printf("\ntipo: %d",aux2.tipo);
                 entradaUser(&aux2, ptd);
                 fflush(stdin);
                 break;
@@ -248,14 +313,15 @@ int main()
     !!!!!!!!!!!!!!! AS MENSAGENS DOS TOPICOS TERÃO QUE INCLUIR ESPAÇOS!!!
     #########
     */
+    
     all st;
     struct sigaction sa;
     sa.sa_handler = handle_signal;
     pid_t res_fork = fork();
 
-    for (int i = 0; i<20; i++){
+    /*for (int i = 0; i<20; i++){
             strcpy(st.topico[i].nomeTopico,".");
-    }
+    }*/
     
 
     /*for (int x = 0; x<10 ; x++){
@@ -267,18 +333,19 @@ int main()
     if (res_fork == 0)
     { // Processo Filho
 
-        int r = execl("feed", "feed", NULL);
+        /*int r = execl("feed", "feed", NULL);
         if (r == -1)
         {
             perror("Erro a Executar");
-        }
+        }*/
+        
     }
     else
     {
         // Processo Pai
         int status;
         // CRIA O FIFO
-        if (mkfifo(FIFO_NAME, 0666) == -1)
+        if (mkfifo(FIFO_NAME, 0600) == -1)
         { // ve se tem erros na criacao do pipe
             if (errno != EEXIST)
             {
@@ -287,14 +354,17 @@ int main()
             }
         }
         // abre o fifo em modo leitura
-        int fd = open(FIFO_NAME, O_RDWR);
+        
+        
+        int fd = open(FIFO_NAME, O_RDONLY);
+        
         if (fd == -1)
         {
             perror("erro na abertura do named pipe para leitura");
             unlink(FIFO_NAME);
             exit(EXIT_FAILURE);
         }
-
+        
         char buffer[BUFFER_SIZE];
         int nbytes;
         int tipo;
@@ -311,12 +381,13 @@ int main()
         // Adicionar o FIFO ao conjunto de descritores
         FD_SET(st.help.fd, &st.help.read_fds);
         
+
         pthread_create(&tid[0], NULL, getpipemessages, &st);
 
         while (running)
         {
-
-            /*char word1[25] = "", word2[25] = "";
+/*
+            char word1[25] = "", word2[25] = "";
             char comando[50];
             fgets(comando, sizeof(comando), stdin);
             comando[strcspn(comando, "\n")] = '\0';
@@ -362,8 +433,8 @@ int main()
             }
             if(strcmp(word1, "users") == 0){
                 listUsers(&st);
-            }
-            */
+            }*/
+            
 
         }
 

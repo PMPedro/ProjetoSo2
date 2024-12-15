@@ -36,6 +36,19 @@ typedef struct topico
 
 
 
+typedef struct{
+    char user[100];
+    char message[300];
+    char nometopico[100];
+    char pipe[30];
+    int tipo;
+}Mensagem;
+
+enum enumtipo{topics, msg, subscribe, unscribe, login};
+
+
+
+
 typedef struct userRecog
 {
     /* data */

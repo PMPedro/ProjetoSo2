@@ -78,8 +78,6 @@ int main(int argc, char *agrv[])
   int duracao;
   int fdmainpipe, fdrcvpipe;
   int nbytes;
-  char *token;
-  char buffercopy[300];
 
   Mensagem message;
 
@@ -110,7 +108,7 @@ int main(int argc, char *agrv[])
 
   thrdatareceiver.threadid = pthread_self();
 
-  
+  fflush(stdout);
 
   // trata do Pipe principal
 
@@ -130,16 +128,16 @@ int main(int argc, char *agrv[])
     exit(EXIT_FAILURE);
   }
 
- 
+  fflush(stdout);
   //////trata da entrada do user///////////
   // prepara-se para criar pipe de leitura
   // PARTE COM ERROS COMECA AQUI
 
-  
+  fflush(stdout);
   pid_t pid = getpid();
   snprintf(rcvpipename, sizeof(rcvpipename), RCVPIPENAME, pid); // Cria o nome do pipe com PID
 
-  
+  fflush(stdout);
   if (mkfifo(rcvpipename, 0666) == -1)
   { // ve se tem erros na criacao do pipe
     if (errno != EEXIST)
@@ -149,10 +147,11 @@ int main(int argc, char *agrv[])
     }
   }
 
-  
+  fflush(stdout);
   // abre o fifo em modo leitura
   printf("pipe: |%s|\n", rcvpipename); // ERRO A PARTIR DAQUI
-
+  fflush(stdin);
+  fflush(stdout);
   if (access(rcvpipename, F_OK) != 0) // VERIFICA SE O PIPE EXISTE
   {
     printf("ERRO a aceder a pipe %s!\n", rcvpipename);
@@ -224,126 +223,30 @@ int main(int argc, char *agrv[])
     // Solicitar a mensagem ao usuário
     printf("\n<MSG>-> ");
     fgets(buffer, sizeof(buffer), stdin);
-    strcpy(buffercopy, buffer);
     // Remove o caractere '\n' que fgets pode adicionar
     buffer[strcspn(buffer, "\n")] = '\0';
-    //strcpy(buffercopy, buffer);
-    printf("o buffer é: %s\n\n", buffer);
-    printf("a copia é: %s", buffercopy);
-    token = strtok(buffer, " ");
-    //strncpy( firstword, token, sizeof(firstword) -1 );
-    //printf("firstword: %s\n",firstword);
+    printf("o buffer é: %s", buffer);
 
-    while (token != NULL){
-
-      if(strcmp(token, "msg") == 0 || strcmp(token, "subscribe") == 0 ||
-         strcmp(token, "unsubcribe") == 0 || strcmp(token, "exit") == 0) {
-
-          if(strcmp(token, "msg") == 0){
-            if (sscanf(buffercopy, "msg %s %d %[^\n]", topico, &duracao, mensagem) == 3){
-              
-              strcpy(message.message, mensagem);
-              strcpy(message.nometopico, topico);
-              printf("\nnome do topico: %s", message.nometopico);
-              // st.topico->msg.duracao = duracao;
-              message.tipo = 1;
-              printf("\nMSG escrita no message-> %s", message.message);
-              write(fd, &message, sizeof(Mensagem));
-              break;
-            }
-
-          }else if (strcmp(token, "subscribe") == 0){
-
-            message.tipo = 3;
-            strcpy(message.message, token);
-            printf("\nnome do comando: %s", message.message);
-            nbytes = write(fd, &message, sizeof(Mensagem));
-
-            if (nbytes == -1)
-            {
-              perror("Erro na escrita no named pipe");
-              close(fd);
-              exit(EXIT_FAILURE);
-            }
-            break;
-
-          }else if (strcmp(token, "unsubcribe") == 0){
-
-            strcpy(message.message, token);
-            message.tipo = 4;
-
-            printf("\nnome do comando: %s", message.message);
-
-            nbytes = write(fd, &message, sizeof(Mensagem));
-
-            if (nbytes == -1)
-            {
-              perror("Erro na escrita no named pipe");
-              close(fd);
-              exit(EXIT_FAILURE);
-            }
-            break;
-
-          }else if (strcmp(token, "exit")){
-
-            strcpy(message.message, token);
-            message.tipo = 5;
-
-            printf("\nnome do comando: %s", message.message);
-
-            nbytes = write(fd, &message, sizeof(Mensagem));
-
-            if (nbytes == -1)
-            {
-              perror("Erro na escrita no named pipe");
-              close(fd);
-              exit(EXIT_FAILURE);
-            }
-            break;
-
-          }
-
-      }else{
-
-        printf("comando invalido");
-        break;
-
-      }
+    /*if (sscanf(buffer, "msg %s %d %[^\n]", topico, &duracao, mensagem) == 3)
+    {
+        printf("Tópico: %s\n", topico);
+        printf("Duração: %d\n", duracao);
+        printf("Mensagem: %s\n", mensagem);
     }
-    /*if (strcmp(firstword, "msg") == 0 || strcmp(firstword, "subscribe") == 0 ||
-        strcmp(firstword, "unsubcribe") == 0 || strcmp(firstword, "exit") == 0){
-        printf("buffer dentro da comparacao: %s",buffer);
-        if(strcmp(firstword, "msg") == 0){
-          if (sscanf(buffer, "msg %s %d %[^\n]", topico, &duracao, mensagem) != 3){
-
-            printf("Formato inválido. Tente novamente.\n");
-            continue;
-          }
-        }
-
-          printf("\n\nCOMPARACAO!!!!:%s\n\n", firstword);
-         }else{
-          printf("comando inválido!");
-         }*/
-
-    /*do{
-
-    }while (strcmp(buffer, ) != "");*/
-    /*if (sscanf(buffer, "msg %s %d %[^\n]", topico, &duracao, mensagem) != 3){
-
-      printf("Formato inválido. Tente novamente.\n");
-
-    }
+    else
+    {
+        printf("Formato inválido. Tente novamente.\n");
+    }*/
 
     // Preencher a estrutura com a mensagem
     // memset(&st, 0, sizeof(st));
-    strcpy(message.message, mensagem);
-    strcpy(message.nometopico, topico);
+    strcpy(message.message, "mensagemteste");
+    strcpy(message.nometopico, "topico");
     printf("\nnome do topico: %s", message.nometopico);
     // st.topico->msg.duracao = duracao;
     message.tipo = 1;
     printf("\nMSG escrita no message-> %s", message.message);
-    printf("\nMSG escritaBuffer -> %s \n", buffer);*/
+    printf("\nMSG escritaBuffer -> %s \n", buffer);
 
     /*
     ##### faço aqui a escrita para o pipe
