@@ -42,9 +42,10 @@ void processaEnvioMensagens(all *estruturaprincipal, all dadosaenviar){
     for (int xusers = 0 ; xusers < 10; xusers++){
         printf("\n &ptd->user[xusers].username: %s\n", &ptd->user[xusers].username);
         fflush(stdout);
-        for (int yuserregisteredtopics = 0; yuserregisteredtopics < 20; yuserregisteredtopics++){
+        if ( strcmp ( &ptd->user[xusers].username, dadosaenviar.user[0].username ) != 0){
+            for (int yuserregisteredtopics = 0; yuserregisteredtopics < 20; yuserregisteredtopics++){
 
-            if ( strcmp ( &ptd->user[xusers].username, dadosaenviar.user[0].username ) != 0){//compara se o nome do utilizador xusers é igual ao que enviou a mensagem
+            //compara se o nome do utilizador xusers é igual ao que enviou a mensagem
                 
                 if ( strcmp(  &ptd->user[xusers].topicosInscritos[yuserregisteredtopics].nomeTopico, dadosaenviar.topico[0].nomeTopico ) == 0 ){
                     printf("entrou para enviar mensagem!!!!!!!!\n");
@@ -254,11 +255,11 @@ int main()
     if (res_fork == 0)
     { // Processo Filho
 
-        int r = execl("feed", "feed", NULL);
+        /*int r = execl("feed", "feed", NULL);
         if (r == -1)
         {
             perror("Erro a Executar");
-        }
+        }*/
     }
     else
     {

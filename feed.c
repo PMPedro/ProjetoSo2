@@ -172,9 +172,11 @@ void *ReadFromPipe(void *pdata){
   }
 
   
-  mkfifo(pthreaddata->fifoname,O_RDONLY);
+  //mkfifo(pthreaddata->fifoname,O_RDONLY);
   fdrcvpipe = open (pthreaddata->fifoname,0600);
   
+  printf("recepcao??????\n");
+
   while(pthreaddata->continuar){
     pthread_mutex_lock(pthreaddata->ptrinco);
     nbytes = read( fdrcvpipe, buffer, sizeof(buffer)- 1);
@@ -216,7 +218,7 @@ int main(int argc, char *agrv[]){
     
   char topico[300], mensagem[300], buffer[300];
   int duracao;
-  int fdmainpipe;
+  int fdmainpipe, fdrcvpipe;
   int nbytes;
     
   all st; //estrutura principal
@@ -242,23 +244,82 @@ int main(int argc, char *agrv[]){
   char fifoname[30];
   pthread_t threadid;
   pthread_mutex_t *ptrinco;
-  pid_t pidrec = getpid(); 
+  
+  pid_t pidreceiver = getpid(); 
   
   thrdatareceiver.threadid = pthread_self();
   thrdatasender.threadid = pthread_self();
   
-  snprintf(rcvpipename, sizeof(rcvpipename), RCVPIPENAME, pidrec);
+  snprintf(rcvpipename, sizeof(rcvpipename), RCVPIPENAME, pidreceiver);
+  strcpy(st.user[0].rcvpipename, rcvpipename);
+  
   strcpy(thrdatareceiver.fifoname,RCVPIPENAME);
 
 
+  //###### PIPES
 
-  //strncpy(pthreaddata->fifoname, _FIFO_NAME,sizeof(pthreaddata->fifoname)-1);
-  pthread_create(&readpipethread, NULL, ReadFromPipe, (void *) &thrdatareceiver);
-  //pthread_create(&writepipethread,NULL, WriteToPipe,(void *) &thrdatasender);
+  if (access(_FIFO_NAME, F_OK) != 0)
+  {
+    printf("O Manager nao se encontra em execucao!\n");
+    exit(0);
+  }
+
+  // Abrir o FIFO para escrita
+  int fd = open(_FIFO_NAME, O_WRONLY);
+  if (fd == -1)
+  {
+    perror("Erro na abertura do named pipe para escrita");
+    unlink(_FIFO_NAME);
+    exit(EXIT_FAILURE);
+  }
   
-  mkfifo(_FIFO_NAME,0666);
-  fdmainpipe = open(_FIFO_NAME, O_WRONLY);
+
+    fflush(stdout);
+  //////trata da entrada do user///////////
+  // prepara-se para criar pipe de leitura
+  // PARTE COM ERROS COMECA AQUI
+
   
+  fflush(stdout);
+  pid_t pid = getpid();
+  snprintf(rcvpipename, sizeof(rcvpipename), RCVPIPENAME, pid); // Cria o nome do pipe com PID
+  
+  fflush(stdout);
+  if (mkfifo(rcvpipename, 0666) == -1)
+  { // ve se tem erros na criacao do pipe
+    if (errno != EEXIST)
+    {
+      perror("erro na criacao do named pipe");
+      exit(EXIT_FAILURE);
+    }
+  }
+  
+  fflush(stdout);
+  // abre o fifo em modo leitura
+  printf("|%s|", rcvpipename); // ERRO A PARTIR DAQUI
+  fflush(stdout);
+  if (access(rcvpipename, F_OK) != 0) // VERIFICA SE O PIPE EXISTE
+  {
+    printf("ERRO a aceder a pipe %s!\n", rcvpipename);
+    exit(0);
+  }
+
+  int fd2 = open(rcvpipename, O_RDWR);
+
+  // st.user->thd.fd = fd2;
+  
+  fflush(stdout);
+
+  if (fd2 == -1)
+  {
+    perror("erro na abertura do named pipe para leitura");
+    unlink(_FIFO_NAME);
+    exit(EXIT_FAILURE);
+  }
+  
+
+
+
   //########################################################3
   //##################### LOGIN 
   fflush(stdout);
@@ -272,7 +333,7 @@ int main(int argc, char *agrv[]){
       
     }else{
 
-      //strcpy(username, agrv[1]);
+      strcpy(username, agrv[1]);
 
     }
 
@@ -284,7 +345,7 @@ int main(int argc, char *agrv[]){
   // preencher struct com dados user e do seu pipe
   strcpy(st.user[0].username, username);
   st.tipo = 2;
-  strcpy(st.user[0].rcvpipename, rcvpipename);
+  
   int bytesn;
   printf("<feed> 5 ");
   fflush(stdout);
@@ -301,7 +362,9 @@ int main(int argc, char *agrv[]){
     fflush(stdout);
   fflush(stdin);
 
-
+  //strncpy(pthreaddata->fifoname, _FIFO_NAME,sizeof(pthreaddata->fifoname)-1);
+  pthread_create(&readpipethread, NULL, ReadFromPipe, (void *) &thrdatareceiver);
+  //pthread_create(&writepipethread,NULL, WriteToPipe,(void *) &thrdatasender);
 
 
   //####################################################3
