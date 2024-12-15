@@ -31,6 +31,7 @@ typedef struct topico
     char nomeTopico[100];
     innerMsg msg; 
     innerMsg msgPersistente[5];
+    int locked;
 }topic;
 
 

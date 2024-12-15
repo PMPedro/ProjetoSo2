@@ -21,7 +21,7 @@ void *WriteToPipe(void *pdata){
   
   THREADDATA *pthreaddata = (THREADDATA *) pdata;
   //char *mensagem[];
-  all message; 
+  all message, st; 
 
 
   bool logado = false;
@@ -37,6 +37,7 @@ void *WriteToPipe(void *pdata){
   char mensagem[300];
   int duracao;
 
+  
 
 
   strncpy(pthreaddata->fifoname, _FIFO_NAME,sizeof(pthreaddata->fifoname)-1);
@@ -49,7 +50,24 @@ void *WriteToPipe(void *pdata){
         exit(EXIT_FAILURE);
     }
 
-  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   while(pthreaddata->continuar){
     if (!logado){
       printf("Insira o seu nome: ");
@@ -67,47 +85,7 @@ void *WriteToPipe(void *pdata){
       fgets(buffer, sizeof(buffer), stdin);
       // Remove o caractere '\n' que fgets pode adicionar
       buffer[strcspn(buffer, "\n")] = '\0';
-      //command= strtok(mensagem, " ");
-
-      //write....
-
-
-      /*
-       printf("\n<MSG>-> ");
-        fgets(buffer, sizeof(buffer), stdin);
-        // Remove o caractere '\n' que fgets pode adicionar
-        buffer[strcspn(buffer, "\n")] = '\0';
-
-        /*  if (sscanf(buffer, "msg %s %d %[^\n]", topico, &duracao, mensagem) == 3)
-          {
-              printf("Tópico: %s\n", topico);
-              printf("Duração: %d\n", duracao);
-              printf("Mensagem: %s\n", mensagem);
-          }
-          else
-          {
-              printf("Formato inválido. Tente novamente.\n");
-          }
-        // Preencher a estrutura com a mensagem
-        memset(&st, 0, sizeof(st));
-        strcpy(st.topico[0].msg.message, buffer);
-        strcpy(st.topico->nomeTopico, topico);
-        st.topico->msg.duracao = duracao;
-        st.tipo = 1;
-        printf("\nMSG escrita -> %s", st.topico[0].msg.message);
-        printf("\nMSG escritaBuffer -> %s \n", buffer);
-
-        // Escrever a estrutura inteira no pipe
-        size_t message_size = sizeof(st);
-        nbytes = write(fd, &st, sizeof(st));
-        if (nbytes == -1)
-        {
-            perror("Erro na escrita no named pipe");
-            close(fd);
-            exit(EXIT_FAILURE);
-        }*/
-
-
+      //command= strtok(mensagem, " ")
 
 
 
@@ -136,40 +114,36 @@ void *WriteToPipe(void *pdata){
           //if(strlen(message.topico[i].nomeTopico) == 0) <<< VAI DAR JEITO PARA O MANAGER
           if ( strcmp(topico, message.topico[i].nomeTopico) ){
 
-            if ( duracao<0 ){
+            if ( duracao < 0 ){
               printf("duracao invalida!");
               fflush(stdout);
               break;
 
-              }else{
-                memset(&message, 0, sizeof(message));
+            }else{
+              memset(&message, 0, sizeof(message));
 
-                strcpy(message.topico[i].msg.message, buffer);
-                strcpy(message.topico->nomeTopico, topico);
+              strcpy(message.topico[i].msg.message, buffer);
+              strcpy(message.topico->nomeTopico, topico);
 
-                message.topico->msg.duracao = duracao;
-                message.tipo = 1;
+              message.topico->msg.duracao = duracao;
+              message.tipo = 1;
 
-                printf("\nMSG escrita -> %s", message.topico[i].msg.message);
-                printf("\nMSG escritaBuffer -> %s \n", buffer);
-                size_t message_size = sizeof(message);
-                int n_bytes;
-                n_bytes = write(fdmainpipe,&message,sizeof(message));
+              printf("\nMSG escrita -> %s", message.topico[i].msg.message);
+              printf("\nMSG escritaBuffer -> %s \n", buffer);
+              size_t message_size = sizeof(message);
+              int n_bytes;
+              n_bytes = write(fdmainpipe,&message,sizeof(message));
 
-                if (n_bytes == -1){
-                    perror("Erro na escrita no named pipe");
-                    close(fdmainpipe);
-                    exit(EXIT_FAILURE);
-                }
+              if (n_bytes == -1){
+                perror("Erro na escrita no named pipe");
+                close(fdmainpipe);
+                exit(EXIT_FAILURE);
               }
-          }
-            
+            }
+          }         
         }
 
-      }   
-      
-      
-      else{
+      }else{
         printf("INVALIDO!!!!");
         fflush(stdout);
       }
@@ -180,7 +154,7 @@ void *WriteToPipe(void *pdata){
 
 
 void *ReadFromPipe(void *pdata){
-  THREADDATA *pthreaddata = (THREADDATA) pdata;
+  THREADDATA *pthreaddata = (THREADDATA *) pdata;
 
 
   /**#######
@@ -230,7 +204,7 @@ void *ReadFromPipe(void *pdata){
 
 
 void QuitFeed(int num, siginfo_t *si, void *uc){
-    // 
+    printf("recebeu sinal!!!!");
     return;
 }
 
@@ -240,24 +214,28 @@ void QuitFeed(int num, siginfo_t *si, void *uc){
 
 int main(int argc, char *agrv[]){
     
+  char topico[300], mensagem[300], buffer[300];
+  int duracao;
+  int fdmainpipe;
+  int nbytes;
     
-    all st; //estrutura principal
-    THREADDATA thrdatasender, thrdatareceiver;
-    char username[100];
-    char rcvpipename[100];
+  all st; //estrutura principal
+  THREADDATA thrdatasender, thrdatareceiver;
+  char username[100];
+  char rcvpipename[100];
 
 
-    //##### THREADS & THREAD MUTEX
-    pthread_mutex_t trinco;
-    pthread_t readpipethread, writepipethread;
+  //##### THREADS & THREAD MUTEX
+  pthread_mutex_t trinco;
+  pthread_t readpipethread, writepipethread;
     
     
-    //##### SIGNAL
-    struct sigaction sa;
-    sa.sa_flags = SA_SIGINFO;
-    sa.sa_sigaction = QuitFeed;
-    sigaction(SIGUSR1, &sa, NULL);
-    //############
+  //##### SIGNAL
+  struct sigaction sa;
+  sa.sa_flags = SA_SIGINFO;
+  sa.sa_sigaction = QuitFeed;
+  sigaction(SIGUSR1, &sa, NULL);
+  //############
 
   int continuar;
   //bool logado = false;
@@ -274,12 +252,110 @@ int main(int argc, char *agrv[]){
 
 
 
-
+  //strncpy(pthreaddata->fifoname, _FIFO_NAME,sizeof(pthreaddata->fifoname)-1);
   pthread_create(&readpipethread, NULL, ReadFromPipe, (void *) &thrdatareceiver);
-  pthread_create(&writepipethread,NULL, WriteToPipe,(void *) &thrdata);
+  //pthread_create(&writepipethread,NULL, WriteToPipe,(void *) &thrdatasender);
+  
+  mkfifo(_FIFO_NAME,0666);
+  fdmainpipe = open(_FIFO_NAME, O_WRONLY);
+  
+  //########################################################3
+  //##################### LOGIN 
+  fflush(stdout);
+  fflush(stdin);
+  if (argc < 2){
+      
+    // pedir dados ao user
+    printf("\nDiga o seu nome de utilizador :  ");
+    scanf("%s", username); // Limite o tamanho para evitar estouro
+    printf("\nO seu nome de utlizador é: %s", username);
+      
+    }else{
+
+      //strcpy(username, agrv[1]);
+
+    }
+
+
+  printf("<feed> 4.5 ");
+  fflush(stdout);
+  memset(&st, 0, sizeof(st));
+
+  // preencher struct com dados user e do seu pipe
+  strcpy(st.user[0].username, username);
+  st.tipo = 2;
+  strcpy(st.user[0].rcvpipename, rcvpipename);
+  int bytesn;
+  printf("<feed> 5 ");
+  fflush(stdout);
+
+  // envia nome utilizador ao manager
+  bytesn = write(fdmainpipe, &st, sizeof(st));
+  if (bytesn == -1){
+    perror("Erro na escrita no named pipe");
+    close(fdmainpipe);
+    unlink(_FIFO_NAME);
+    exit(EXIT_FAILURE);
+  }
+    printf("<feed> 6 ");
+    fflush(stdout);
+  fflush(stdin);
 
 
 
+
+  //####################################################3
+
+    do{
+        // Solicitar a mensagem ao usuário
+        printf("\n<MSG>-> ");
+        fgets(buffer, sizeof(buffer), stdin);
+        // Remove o caractere '\n' que fgets pode adicionar
+        buffer[strcspn(buffer, "\n")] = '\0';
+        printf("o buffer é: %s",buffer);
+          if (sscanf(buffer, "msg %s %d %[^\n]", topico, &duracao, mensagem) == 3)
+          {
+              printf("Tópico: %s\n", topico);
+              printf("Duração: %d\n", duracao);
+              printf("Mensagem: %s\n", mensagem);
+          }
+          else
+          {
+              printf("Formato inválido. Tente novamente.\n");
+          }
+        // Preencher a estrutura com a mensagem
+        memset(&st, 0, sizeof(st));
+        strcpy(st.topico[0].msg.message, buffer);
+        strcpy(st.topico[0].nomeTopico, topico);
+        printf("\nnome do topico: %s",st.topico->nomeTopico);
+        st.topico->msg.duracao = duracao;
+        st.tipo = 1;
+        printf("\nMSG escrita -> %s", st.topico[0].msg.message);
+        printf("\nMSG escritaBuffer -> %s \n", buffer);
+
+      /*
+      ##### faço aqui a escrita para o pipe
+      
+       */
+
+
+        // Escrever a estrutura inteira no pipe
+        size_t message_size = sizeof(st);
+        nbytes = write(fdmainpipe, &st, sizeof(st));
+        if (nbytes == -1)
+        {
+            perror("Erro na escrita no named pipe");
+            close(fdmainpipe);
+            exit(EXIT_FAILURE);
+        }
+
+        // Verificar se a quantidade de dados escritos é a esperada
+        if (nbytes != sizeof(st))
+        {
+            fprintf(stderr, "Erro: Nem todos os dados foram enviados\n");
+        }
+
+    } while (strcmp("sair", buffer) != 0); // Continuar até o comando "sair"
 
 
 
@@ -479,6 +555,6 @@ int main(int argc, char *agrv[]){
     } while (strcmp("sair", buffer) != 0);*/ // Continuar até o comando "sair"
 
     printf("Adeus <feed> ");
-    close(fd);
+    //close(fd);
     return 0;
 }

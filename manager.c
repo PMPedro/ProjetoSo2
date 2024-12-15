@@ -1,6 +1,67 @@
 #include "helper.h"
+
+#pragma
 #define FIFO_NAME "mainpipe"
 int running = 1;
+
+
+void listMessage(all *aux, all *main)
+{
+    // printf("\n <MSG> %s", aux->topico[0].msg.message);
+}
+
+
+
+void processaEnvioMensagens(all *estruturaprincipal, all dadosaenviar){
+    all *ptd = (all *) estruturaprincipal;
+    
+
+    printf("ENTROU\n");
+    fflush(stdout);
+
+    //printf("\ntamanho: %d\n",sizeof(&ptd->topico[0].nomeTopico));fflush(stdout);
+    
+    //aux2.topico[i].nomeTopico
+
+    for(int i = 0;i <20; i++){
+
+        if( strcmp(&ptd->topico[i].nomeTopico, ".") == 0 ){
+            //printf("encontrou slot vazia\n");
+            strcpy(&ptd->topico[i].nomeTopico, dadosaenviar.topico[0].nomeTopico) ;
+            //printf("\nall topico %s\n", &ptd->topico[i].nomeTopico);
+            //fflush(stdout);
+            return;
+        }else if ( strcmp(&ptd->topico[i].nomeTopico, ".") != 0){ // se encontrar um topico diferente, quebra o ciclo e procura enviar a mensagem
+            //printf("encontrou um topico diferente!!!!");
+            //fflush(stdout);
+            break;
+        }
+
+    }
+        
+    for (int xusers = 0 ; xusers < 10; xusers++){
+        printf("\n &ptd->user[xusers].username: %s\n", &ptd->user[xusers].username);
+        fflush(stdout);
+        for (int yuserregisteredtopics = 0; yuserregisteredtopics < 20; yuserregisteredtopics++){
+
+            if ( strcmp ( &ptd->user[xusers].username, dadosaenviar.user[0].username ) != 0){//compara se o nome do utilizador xusers é igual ao que enviou a mensagem
+                
+                if ( strcmp(  &ptd->user[xusers].topicosInscritos[yuserregisteredtopics].nomeTopico, dadosaenviar.topico[0].nomeTopico ) == 0 ){
+                    printf("entrou para enviar mensagem!!!!!!!!\n");
+                    fflush(stdout);
+                }  
+
+            } // 
+            
+    //write();
+
+        }
+    }   
+    printf("SUCCESS!!!!");
+
+} 
+
+
 
 void handle_signal(int sig)
 {
@@ -9,13 +70,9 @@ void handle_signal(int sig)
     // close(fd);
     unlink(FIFO_NAME);
 }
-void listMessage(all *aux, all *main)
-{
-    // printf("\n <MSG> %s", aux->topico[0].msg.message);
-}
 
-void entradaUser(all *aux, all *main)
-{
+
+void entradaUser(all *aux, all *main){
     printf("[MANAGER] Verificando autenticação de usuário...\n");
 
     bool podeLogar = false;
@@ -84,14 +141,13 @@ void *getpipemessages(void *pall)
     aux.help.fd = ptd->help.fd;
     int total_bytes;
 
-    while (1)
-    {
+    while (1){
         total_bytes = 0;
-        while (total_bytes < sizeof(aux2))
-        {
+
+        while (total_bytes < sizeof(aux2)){
+
             int nbytes = read(ptd->help.fd, ((char *)&aux2) + total_bytes, sizeof(aux2) - total_bytes);
-            if (nbytes <= 0)
-            {
+            if (nbytes <= 0){
                 if (errno == EINTR)
                     continue; // Interrupções de sinal
                 perror("Erro na leitura do named pipe");
@@ -100,24 +156,77 @@ void *getpipemessages(void *pall)
                 unlink(FIFO_NAME);
                 exit(EXIT_FAILURE);
             }
+
             total_bytes += nbytes;
         }
 
         aux2.topico[0].msg.message[sizeof(aux2.topico[0].msg.message) - 1] = '\0';
 
+        
         printf("\n <MSG> %s", aux2.topico[0].msg.message);
         printf("\n TIPO %d", aux2.tipo);
-        if (aux2.tipo == 1)
+        printf("\n TOPICO RECEBIDO: %s", aux2.topico[0].nomeTopico);
+        switch (aux2.tipo){
+            case 1: // envia mensagem
+            //percorre todos os utilizadores
+            //dentro dos utilizadores, verifica se tem o topico
+            //escreve para o pipe respetivo
+            processaEnvioMensagens(ptd, aux2);
+            /*printf("\ntamanho: %d\n",sizeof(&ptd->topico[0]));
+            printf("\nome do topico recebido: %d\n",sizeof(&ptd->topico[0].nomeTopico));
+            //aux2.topico[i].nomeTopico
+                for(int i = 0;i <20; i++){
+                    if( strcmp(&ptd->topico[i].nomeTopico, ".") == 0 ){
+                        printf("encontrou slot vazia\n");
+                        strcpy(&ptd->topico[i].nomeTopico,aux2.topico[0].nomeTopico);
+                        printf("all topico %s", &ptd->topico[i].nomeTopico);
+                        fflush(stdout);
+                    }else if (strcmp(&ptd->topico[i].nomeTopico,aux2.topico[0].nomeTopico) == 0){
+                        printf("encontrou topico igual!!!!\n");
+                        // percorrer pipes e enviar mensagens!!!
+                    }*/
+
+                
+                    break;
+                //}
+
+
+
+            break;
+
+            case 2: // login
+                entradaUser(&aux2, ptd);
+                break;
+
+            case 3://subscribe
+                printf("subscribe");
+                //Subscreve(&aux2, ptd);
+                break;
+                
+            case 4: // unscribe
+                printf("unscribe");
+                //RemoveTopico(&aux2, ptd);
+                break;
+
+            case 5: //saida de feed
+                /// <<<< COMO ENVIAR SINAL?!
+                // vai ser neccessário de remover do array
+                break;
+        }
+
+
+        /*if (aux2.tipo == 1)
         {
             listMessage(&aux2, ptd);
             printf("entra na msg");
         }
         if (aux2.tipo == 2)
         {
-            entradaUser(&aux2, ptd);
-        }
+        }*/
     }
 }
+
+
 
 int main()
 {
@@ -126,9 +235,21 @@ int main()
     !!!!!!!!!!!!!!! AS MENSAGENS DOS TOPICOS TERÃO QUE INCLUIR ESPAÇOS!!!
     #########
     */
+    all st;
     struct sigaction sa;
     sa.sa_handler = handle_signal;
     pid_t res_fork = fork();
+
+    for (int i = 0; i<20; i++){
+            strcpy(st.topico[i].nomeTopico,".");
+    }
+    
+
+    /*for (int x = 0; x<10 ; x++){
+        strcpy(st.user[x].rcvpipename,".");
+        strcpy(st.user[x].username,".");
+    }*/
+
 
     if (res_fork == 0)
     { // Processo Filho
@@ -166,9 +287,10 @@ int main()
         int tipo;
         fd_set read_fds;
         int max_fd = fd;
-        all st;
+        
         // vai ler dados do pipe
-
+        
+        
         pthread_t tid[2];
         st.help.fd = fd;
         // Se o FIFO está pronto para leitura
