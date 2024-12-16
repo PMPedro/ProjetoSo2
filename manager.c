@@ -1,3 +1,4 @@
+
 //#include "helper.h"
 #include<stdio.h>
 #include<stdlib.h>
@@ -14,6 +15,9 @@
 #include <stdbool.h>
 #define BUFFER_SIZE 1024
 #pragma
+
+#include "funcoesHelper.c"
+
 #define FIFO_NAME "mainpipe"
 int running = 1;
 
@@ -220,8 +224,10 @@ void handle_signal(int sig)
 void entradaUser(all *main, Mensagem mensagem){
     //all *ptd = (all *) main;
     printf("[MANAGER] Verificando autenticação de usuário...\n");
+    bool verifica = true;
+    char resposta[20];
 
-    bool podeLogar = false;
+    bool space = false, alExist = false;
     int posicao = -1;
 
     // Verificar se o usuário já está logado
@@ -232,11 +238,15 @@ void entradaUser(all *main, Mensagem mensagem){
             printf("[MANAGER] Usuário já logado: %s\n", mensagem.user);
             podeLogar = false;
             return;
+
+        if (strcmp(main->user[i].username, aux->user[0].username) == 0)
+        {
+            printf("[MANAGER] Usuário já logado: %s\n", aux->user[0].username);
+            verifica = false;
+            break;
         }
     }
-
-    // Verificar espaço para logar
-    for (int i = 0; i < 10; i++)
+    if (verifica)
     {
         if (strlen(&main->user[i].username) == 0)
         {
@@ -246,6 +256,17 @@ void entradaUser(all *main, Mensagem mensagem){
             printf("ENTROU NO ESPAÇO PARA LOGAR!!!\n\n\n username:%s\tpipe:%s\n\n\n",&main->user[i].username,&main->user[i].rcvpipename);
             posicao = i;
             break;
+        // Verificar espaço para logar
+        for (int i = 0; i < 10; i++)
+        {
+            if (strlen(main->user[i].username) == 0)
+            {
+
+                strcpy(main->user[i].username, aux->user[0].username);
+                strcpy(main->user[i].rcvpipename, aux->user[0].rcvpipename);
+                posicao = i;
+                break;
+            }
         }
     }
 
@@ -257,7 +278,7 @@ void entradaUser(all *main, Mensagem mensagem){
     if (posicao == -1)
     {
         printf("[MANAGER] Não há espaço para novos usuários.\n");
-        podeLogar = false;
+        verifica = false;
     }
     printf("\n<manager> pipe de login: %s\n", mensagem.pipe);
 
@@ -272,6 +293,15 @@ void entradaUser(all *main, Mensagem mensagem){
     char resposta[10] = {0};
     strcpy(resposta, podeLogar ? "true" : "false");
     printf("user:%s\n",mensagem.user);
+    if (verifica)
+    {
+        strncpy(resposta, "true", sizeof(resposta) - 1);
+    }
+    else
+    {
+        strncpy(resposta, "false", sizeof(resposta) - 1);
+    }
+
     if (write(fd, resposta, sizeof(resposta)) == -1)
     {
         perror("[MANAGER] Erro ao enviar resposta para o cliente");
@@ -382,6 +412,16 @@ void *getpipemessages(void *pall)
             default:
                 printf("ta num loop?!\n");
                 break;
+        printf("\n <MSG> %s", aux2.topico[0].msg.message);
+        printf("\n TIPO %d", aux2.tipo);
+        if (aux2.tipo == 1)
+        {
+            listMessage(&aux2, ptd);
+            printf("entra na msg");
+        }
+        if (aux2.tipo == 2)
+        {
+            entradaUser(&aux2, ptd);
         }
     }
     printf("DAFUUUUUUCK=! \n");
@@ -420,12 +460,12 @@ int main()
     if (res_fork == 0)
     { // Processo Filho
 
-        /*int r = execl("feed", "feed", NULL);
+      
+      /*  int r = execl("feed", "feed", NULL);
         if (r == -1)
         {
             perror("Erro a Executar");
         }*/
-        
     }
     else
     {
@@ -473,7 +513,6 @@ int main()
 
         while (running)
         {
-/*
             char word1[25] = "", word2[25] = "";
             char comando[50];
             fgets(comando, sizeof(comando), stdin);
@@ -521,6 +560,47 @@ int main()
             if(strcmp(word1, "users") == 0){
                 listUsers(&st);
             }*/
+            {
+                strncpy(word1, token, sizeof(word1) - 1);
+                word1[sizeof(word1) - 1] = '\0';
+
+                token = strtok(NULL, " ");
+                if (token != NULL)
+                {
+                    strncpy(word2, token, sizeof(word2) - 1);
+                    word2[sizeof(word2) - 1] = '\0';
+                }
+            }
+            if (strcmp(word1, "close") == 0)
+            {
+                break;
+            }
+            if (strcmp(word1, "lock") == 0)
+            {
+                if (strlen(word2) != 0)
+                {
+                    lockTopic(word2, &st);
+                }
+                else
+                    printf("\nERRO na sintaxe");
+            }
+
+            if (strcmp(word1, "unlock") == 0)
+            {
+                if (strlen(word2) != 0)
+                {
+                    unlockTopic(word2, &st);
+                }
+                else
+                    printf("\nERRO na sintaxe");
+            }
+
+            if(strcmp(word1, "topics") == 0){
+                listTopics(&st);
+            }
+            if(strcmp(word1, "users") == 0){
+                listUsers(&st);
+            }
             
 
         }
@@ -529,18 +609,4 @@ int main()
         close(fd);
         unlink(FIFO_NAME);
     }
-    printf("acabou?");
-    /*
-    ##############
-    GUARDAR MENSAGENS PERMANENTES QUE AINDA TENHAM TEMPO DE VIDA, EM FICHEIRO!!!
-    SERÁ FICHEIRO TEXTO!!!!!
-    FORMATO DO FICHEIRO:
-    <NOME TOPICO> <USERNAME> <TEMPO DE VIDA RESTANTE> <CORPO DE MENSAGEM>
-
-    O NOME TOPICO, USER E TEMPO DE VIDA CONTARÃO COMO UMA ÚNICA PALAVRA!!! USAR SPRINTF!!!
-
-    OBRIGATORIO : O NOME DO FICHEIRO SERÁ GUARDADO NUMA VARIAVEL DE AMBIENTE MSG_FICH
-
-    #######
-     */
 }
