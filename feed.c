@@ -18,7 +18,8 @@ typedef struct
 void *ReadFromPipe(void *pdata)
 {
   THREADDATA *pthreaddata = (THREADDATA *)pdata;
-
+  
+  
   /**#######
    vai ser necessário meter o pthreaddata->all->user->rcvname = RCVPIPENAME
   #####
@@ -39,10 +40,10 @@ void *ReadFromPipe(void *pdata)
   while (pthreaddata->continuar == 1)
   {
 
-    // pthread_mutex_lock(pthreaddata->ptrinco);
+    pthread_mutex_lock(pthreaddata->ptrinco);
     nbytes = read(pthreaddata->fifoname, buffer, sizeof(buffer) - 1);
-
-    // pthread_mutex_unlock(pthreaddata->ptrinco);
+    printf("#####################leu!!!!        ######### \n");
+     pthread_mutex_unlock(pthreaddata->ptrinco);
     if (nbytes > 0)
     {
 
@@ -91,6 +92,7 @@ int main(int argc, char *agrv[])
 
   // ##### THREADS & THREAD MUTEX
   pthread_mutex_t trinco;
+  pthread_mutex_init(&trinco,NULL);
   pthread_t readpipethread, writepipethread;
 
   // ##### SIGNAL

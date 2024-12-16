@@ -142,8 +142,8 @@ void listMessage(all *aux, all *main)
 
 void processaEnvioMensagens(all *estruturaprincipal, Mensagem mensagem){
     //all *ptd = (all *) estruturaprincipal;
-
-
+    
+    
 
     printf("\n\nENTROU NO PROCESSA ENVIO MENSAGENS\n utilizador que enviou mensagem: %s \n >>>topico: %s\n", mensagem.user,mensagem.nometopico);
     
@@ -159,7 +159,9 @@ void processaEnvioMensagens(all *estruturaprincipal, Mensagem mensagem){
         if( strlen(estruturaprincipal->topico[i].nomeTopico) == 0 ){
             printf("encontrou slot vazia\n" );
             strcpy(estruturaprincipal->topico[i].nomeTopico, mensagem.nometopico) ;
-            printf("\nall topico %s\n", estruturaprincipal->topico[i].nomeTopico);
+            strcpy(estruturaprincipal->user[i].topicosInscritos, mensagem.nometopico) ;
+
+            printf("\nestrutura topico: %s\n", estruturaprincipal->topico[i].nomeTopico);
             fflush(stdout);
             return;
         }else if ( strcmp(estruturaprincipal->topico[i].nomeTopico, mensagem.nometopico) == 0){ // se encontrar um topico diferente, quebra o ciclo e procura enviar a mensagem
@@ -173,8 +175,9 @@ void processaEnvioMensagens(all *estruturaprincipal, Mensagem mensagem){
         printf("\n\ntopicos existentes\n topico[%d]: %s", x, estruturaprincipal->topico[x].nomeTopico);
     }
 
+
     for (int xusers = 0 ; xusers < 10; xusers++){
-        printf("\n &ptd->user[xusers].username: %s\n", estruturaprincipal->user[xusers].username);
+        printf("\n estruturaprincipal[xusers].username: %s\n", estruturaprincipal->user[xusers].username);
         fflush(stdout);
         if ( strcmp ( estruturaprincipal->user[xusers].username, mensagem.user) != 0){
 
@@ -184,6 +187,7 @@ void processaEnvioMensagens(all *estruturaprincipal, Mensagem mensagem){
                 
                 if ( strcmp(  estruturaprincipal->user[xusers].topicosInscritos[yuserregisteredtopics].nomeTopico, mensagem.nometopico ) == 0 ){
                     printf("entrou para enviar mensagem!!!!!!!!\n");
+                    write(estruturaprincipal->user[xusers].rcvpipename,&mensagem.message, sizeof(mensagem.message));
                     fflush(stdout);
                 }  
 
@@ -213,7 +217,7 @@ void handle_signal(int sig)
 
 
 void entradaUser(all *main, Mensagem mensagem){
-    all *ptd = (all *) main;
+    //all *ptd = (all *) main;
     printf("[MANAGER] Verificando autenticação de usuário...\n");
 
     bool podeLogar = false;
@@ -222,22 +226,23 @@ void entradaUser(all *main, Mensagem mensagem){
     // Verificar se o usuário já está logado
     for (int i = 0; i < 10; i++)
     {
-        if (strcmp(ptd->user[i].username, mensagem.user) == 0)
+        if (strcmp(&main->user[i].username, mensagem.user) == 0)
         {
             printf("[MANAGER] Usuário já logado: %s\n", mensagem.user);
             podeLogar = false;
-            break;
+            return;
         }
     }
 
     // Verificar espaço para logar
     for (int i = 0; i < 10; i++)
     {
-        if (ptd->user[i].username[0] == '\0')
+        if (strlen(&main->user[i].username) == 0)
         {
             podeLogar = true;
-            strcpy(ptd->user[i].username, mensagem.user);
-            strcpy(ptd->user[i].rcvpipename, mensagem.pipe);
+            strcpy(&main->user[i].username, mensagem.user);
+            strcpy(&main->user[i].rcvpipename, mensagem.pipe);
+            printf("ENTROU NO ESPAÇO PARA LOGAR!!!\n\n\n username:%s\npipe:%s\n\n\n",&main->user[i].username,&main->user[i].rcvpipename);
             posicao = i;
             break;
         }
@@ -245,7 +250,7 @@ void entradaUser(all *main, Mensagem mensagem){
 
 
     for (int y = 0; y < 10; y++)
-    printf("utilizadores ligados:%s\n",ptd->user[y].username);
+    printf("utilizadores ligados:%s\n",&main->user[y].username);
 
 
     if (posicao == -1)
@@ -334,7 +339,7 @@ void *getpipemessages(void *pall)
             
             
             for (int y = 0; y < 10; y++)
-            printf("getpipe \t utilizadores ligados:%s\n",ptd->user[y].username);
+            printf("getpipe \t utilizadores ligados:%s\n",aux2.user[y].username);
 
         printf("total bytes???? %d \n",total_bytes);
         
@@ -344,7 +349,7 @@ void *getpipemessages(void *pall)
             case 1: 
                 printf("\ntipo: %d",mensagem.tipo);
                 //pthread_mutex_lock(&thrmutex);
-                processaEnvioMensagens(ptd, mensagem);
+                processaEnvioMensagens(&aux2, mensagem);
                 //pthread_mutex_unlock(&thrmutex);
 
                 break;
