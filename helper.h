@@ -76,7 +76,8 @@ typedef struct Alltog
 
     topic topico[20];  
     userRecog user[10]; 
-    helper help; 
+    helper help;
+    Mensagem message; 
     int tipo;
    
     

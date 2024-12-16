@@ -88,7 +88,7 @@ void listMessage(all *aux, all *main)
 
 
 
-void processaEnvioMensagens(all *estruturaprincipal, all dadosaenviar){
+void processaEnvioMensagens(all *estruturaprincipal, Mensagem mensagem){
     all *ptd = (all *) estruturaprincipal;
     
 
@@ -101,13 +101,13 @@ void processaEnvioMensagens(all *estruturaprincipal, all dadosaenviar){
 
     for(int i = 0;i <20; i++){
 
-        if( strcmp(&ptd->topico[i].nomeTopico, ".") == 0 ){
+        if( strcmp(&ptd->topico[i].nomeTopico, 0) == 0 ){
             //printf("encontrou slot vazia\n");
-            strcpy(&ptd->topico[i].nomeTopico, dadosaenviar.topico[0].nomeTopico) ;
+            //strcpy(&ptd->topico[i].nomeTopico, dadosaenviar.topico[0].nomeTopico) ;
             //printf("\nall topico %s\n", &ptd->topico[i].nomeTopico);
             //fflush(stdout);
             return;
-        }else if ( strcmp(&ptd->topico[i].nomeTopico, ".") != 0){ // se encontrar um topico diferente, quebra o ciclo e procura enviar a mensagem
+        }else if ( strcmp(&ptd->topico[i].nomeTopico, 0) != 0){ // se encontrar um topico diferente, quebra o ciclo e procura enviar a mensagem
             //printf("encontrou um topico diferente!!!!");
             //fflush(stdout);
             break;
@@ -115,7 +115,7 @@ void processaEnvioMensagens(all *estruturaprincipal, all dadosaenviar){
 
     }
         
-    for (int xusers = 0 ; xusers < 10; xusers++){
+    /*for (int xusers = 0 ; xusers < 10; xusers++){
         printf("\n &ptd->user[xusers].username: %s\n", &ptd->user[xusers].username);
         fflush(stdout);
         if ( strcmp ( &ptd->user[xusers].username, dadosaenviar.user[0].username ) != 0){
@@ -128,15 +128,15 @@ void processaEnvioMensagens(all *estruturaprincipal, all dadosaenviar){
                     fflush(stdout);
                 }  
 
-            } // 
+            / // 
             
     //write();
 
         }
-    }   
+    } */  
     printf("SUCCESS!!!!");
 
-} 
+}
 
 
 
@@ -151,7 +151,7 @@ void handle_signal(int sig)
 
 
 
-void entradaUser(all *aux, all *main){
+void entradaUser(all *main, Mensagem mensagem){
     printf("[MANAGER] Verificando autenticação de usuário...\n");
 
     bool podeLogar = false;
@@ -160,9 +160,9 @@ void entradaUser(all *aux, all *main){
     // Verificar se o usuário já está logado
     for (int i = 0; i < 10; i++)
     {
-        if (strcmp(main->user[i].username, aux->user[0].username) == 0)
+        if (strcmp(main->user[i].username, mensagem.user) == 0)
         {
-            printf("[MANAGER] Usuário já logado: %s\n", aux->user[0].username);
+            printf("[MANAGER] Usuário já logado: %s\n", mensagem.user);
             podeLogar = false;
             break;
         }
@@ -174,8 +174,8 @@ void entradaUser(all *aux, all *main){
         if (main->user[i].username[0] == '\0')
         {
             podeLogar = true;
-            strcpy(main->user[i].username, aux->user[0].username);
-            strcpy(main->user[i].rcvpipename, aux->user[0].rcvpipename);
+            strcpy(main->user[i].username, mensagem.user);
+            strcpy(main->user[i].rcvpipename, mensagem.pipe);
             posicao = i;
             break;
         }
@@ -186,12 +186,10 @@ void entradaUser(all *aux, all *main){
         printf("[MANAGER] Não há espaço para novos usuários.\n");
         podeLogar = false;
     }
-    printf("\n<manager> pipe de login: %s\n", aux->user[0].rcvpipename);
+    printf("\n<manager> pipe de login: %s\n", mensagem.pipe);
 
     // Enviar resposta para o cliente
-    int fd = open(aux->user[0].rcvpipename, O_WRONLY);
-    printf("abriu indevidamente???");
-  
+    int fd = open(mensagem.pipe, O_WRONLY);
     if (fd == -1)
     {
         perror("[MANAGER] Erro ao abrir pipe de resposta");
@@ -200,7 +198,7 @@ void entradaUser(all *aux, all *main){
 
     char resposta[10] = {0};
     strcpy(resposta, podeLogar ? "true" : "false");
-
+    printf("user:%s\n",mensagem.user);
     if (write(fd, resposta, sizeof(resposta)) == -1)
     {
         perror("[MANAGER] Erro ao enviar resposta para o cliente");
@@ -271,14 +269,14 @@ void *getpipemessages(void *pall)
         switch (mensagem.tipo){
             
             case 1: 
-                printf("\ntipo: %d",aux2.tipo);
-                processaEnvioMensagens(ptd, aux2);
+                printf("\ntipo: %d",mensagem.tipo);
+                processaEnvioMensagens(ptd, mensagem);
                 break;
 
 
             case 2: // login
-                printf("\ntipo: %d",aux2.tipo);
-                entradaUser(&aux2, ptd);
+                printf("\ntipo: %d",mensagem.tipo);
+                entradaUser(&aux2, mensagem);
                 fflush(stdin);
                 break;
 

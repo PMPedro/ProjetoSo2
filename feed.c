@@ -249,6 +249,16 @@ int main(int argc, char *agrv[])
               message.tipo = 1;
               printf("\nMSG escrita no message-> %s", message.message);
               write(fd, &message, sizeof(Mensagem));
+              if (nbytes == -1)
+              {
+                perror("Erro na escrita no named pipe");
+                close(fd);
+                exit(EXIT_FAILURE);
+              }
+              if (nbytes != sizeof(message))
+              {
+                fprintf(stderr, "Erro: Nem todos os dados foram enviados\n");
+              }
               break;
             }
 
@@ -264,6 +274,10 @@ int main(int argc, char *agrv[])
               perror("Erro na escrita no named pipe");
               close(fd);
               exit(EXIT_FAILURE);
+            }
+            if (nbytes != sizeof(message))
+            {
+              fprintf(stderr, "Erro: Nem todos os dados foram enviados\n");
             }
             break;
 
@@ -282,6 +296,10 @@ int main(int argc, char *agrv[])
               close(fd);
               exit(EXIT_FAILURE);
             }
+            if (nbytes != sizeof(message))
+            {
+              fprintf(stderr, "Erro: Nem todos os dados foram enviados\n");
+            }
             break;
 
           }else if (strcmp(token, "exit")){
@@ -299,6 +317,11 @@ int main(int argc, char *agrv[])
               close(fd);
               exit(EXIT_FAILURE);
             }
+            if (nbytes != sizeof(message))
+            {
+              fprintf(stderr, "Erro: Nem todos os dados foram enviados\n");
+            }
+
             break;
 
           }
