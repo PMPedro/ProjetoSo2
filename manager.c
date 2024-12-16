@@ -186,9 +186,10 @@ void processaEnvioMensagens(all *estruturaprincipal, Mensagem mensagem){
             //compara se o nome do utilizador xusers é igual ao que enviou a mensagem
                 
                 if ( strcmp(  estruturaprincipal->user[xusers].topicosInscritos[yuserregisteredtopics].nomeTopico, mensagem.nometopico ) == 0 ){
-                    printf("entrou para enviar mensagem!!!!!!!!\n");
+                    printf("entrou para enviar mensagem!!!!!!!!\n user a receber mensagem:%s\n pipe:%s", estruturaprincipal->user[xusers].username, estruturaprincipal->user[xusers].rcvpipename);
                     write(estruturaprincipal->user[xusers].rcvpipename,&mensagem.message, sizeof(mensagem.message));
                     fflush(stdout);
+                    
                 }  
 
             
@@ -242,7 +243,7 @@ void entradaUser(all *main, Mensagem mensagem){
             podeLogar = true;
             strcpy(&main->user[i].username, mensagem.user);
             strcpy(&main->user[i].rcvpipename, mensagem.pipe);
-            printf("ENTROU NO ESPAÇO PARA LOGAR!!!\n\n\n username:%s\npipe:%s\n\n\n",&main->user[i].username,&main->user[i].rcvpipename);
+            printf("ENTROU NO ESPAÇO PARA LOGAR!!!\n\n\n username:%s\tpipe:%s\n\n\n",&main->user[i].username,&main->user[i].rcvpipename);
             posicao = i;
             break;
         }

@@ -25,7 +25,7 @@ void *ReadFromPipe(void *pdata)
   #####
    */
 
-  char buffer[100];
+  char buffer[300];
   int fdrcvpipe, nbytes;
 
   if (access(FIFO_NAME, F_OK) != 0)
@@ -34,16 +34,16 @@ void *ReadFromPipe(void *pdata)
     exit(0);
   }
 
-  // mkfifo(pthreaddata->fifoname,O_RDONLY);
-  // fdrcvpipe = open (pthreaddata->fifoname,0600);
-
+  mkfifo(RCVPIPENAME,0600);
+  fdrcvpipe = open (RCVPIPENAME,O_RDWR);
+  printf("ta aqui?");
   while (pthreaddata->continuar == 1)
   {
 
-    pthread_mutex_lock(pthreaddata->ptrinco);
-    nbytes = read(pthreaddata->fifoname, buffer, sizeof(buffer) - 1);
-    printf("#####################leu!!!!        ######### \n");
-     pthread_mutex_unlock(pthreaddata->ptrinco);
+    printf("e aqui?");
+    nbytes = read(fdrcvpipe, buffer, sizeof(buffer) - 1);
+    
+    
     if (nbytes > 0)
     {
 
@@ -61,7 +61,7 @@ void *ReadFromPipe(void *pdata)
   }
   printf("chegou onde nao devia???");
   close(fdrcvpipe);
-  unlink(pthreaddata->fifoname);
+  unlink(RCVPIPENAME);
 
   pthread_exit(NULL);
 }
@@ -91,8 +91,8 @@ int main(int argc, char *agrv[])
   thrdatareceiver.continuar = 1;
 
   // ##### THREADS & THREAD MUTEX
-  pthread_mutex_t trinco;
-  pthread_mutex_init(&trinco,NULL);
+  
+
   pthread_t readpipethread, writepipethread;
 
   // ##### SIGNAL
