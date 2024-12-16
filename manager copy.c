@@ -18,13 +18,6 @@
 int running = 1;
 
 
-
-
-
-
-
-
-
 typedef struct innerMsg {
     /*data*/
     char message[300];
@@ -71,7 +64,6 @@ typedef struct Alltog
     userRecog user[10]; 
     helper help; 
     int tipo;
-    char userRemove[40];
    
     
 }all;
@@ -84,50 +76,6 @@ typedef struct{
     int tipo;
 }Mensagem;
 
-void initializeAll(all *st) {
-    if (st == NULL) {
-        return; // Evitar problemas caso o ponteiro seja nulo.
-    }
-
-    // Inicializar tópicos gerais criados
-    for (int i = 0; i < 20; i++) {
-        memset(st->topico[i].nomeTopico, 0, sizeof(st->topico[i].nomeTopico));
-        memset(st->topico[i].msg.message, 0, sizeof(st->topico[i].msg.message));
-        st->topico[i].msg.duracao = 0;
-        for (int j = 0; j < 5; j++) {
-            memset(st->topico[i].msgPersistente[j].message, 0, sizeof(st->topico[i].msgPersistente[j].message));
-            st->topico[i].msgPersistente[j].duracao = 0;
-        }
-        st->topico[i].locked = 0;
-    }
-
-    // Inicializar usuários
-    for (int i = 0; i < 10; i++) {
-        memset(st->user[i].username, 0, sizeof(st->user[i].username));
-        memset(st->user[i].rcvpipename, 0, sizeof(st->user[i].rcvpipename));
-        for (int j = 0; j < 20; j++) {
-            memset(st->user[i].topicosInscritos[j].nomeTopico, 0, sizeof(st->user[i].topicosInscritos[j].nomeTopico));
-            memset(st->user[i].topicosInscritos[j].msg.message, 0, sizeof(st->user[i].topicosInscritos[j].msg.message));
-            st->user[i].topicosInscritos[j].msg.duracao = 0;
-            for (int k = 0; k < 5; k++) {
-                memset(st->user[i].topicosInscritos[j].msgPersistente[k].message, 0, sizeof(st->user[i].topicosInscritos[j].msgPersistente[k].message));
-                st->user[i].topicosInscritos[j].msgPersistente[k].duracao = 0;
-            }
-            st->user[i].topicosInscritos[j].locked = 0;
-        }
-    }
-
-    // Inicializar o helper
-    for (int i = 0; i < 10; i++) {
-        st->help.cont[i] = 0;
-    }
-    FD_ZERO(&st->help.read_fds); // Zerar o conjunto de descritores
-    st->help.fd = -1;
-
-    // Inicializar outros campos
-    st->tipo = 0;
-    memset(st->userRemove, 0, sizeof(st->userRemove));
-}
 
 
 
@@ -141,60 +89,51 @@ void listMessage(all *aux, all *main)
 
 
 void processaEnvioMensagens(all *estruturaprincipal, Mensagem mensagem){
-    //all *ptd = (all *) estruturaprincipal;
-
-
-
-    printf("\n\nENTROU NO PROCESSA ENVIO MENSAGENS\n utilizador que enviou mensagem: %s \n >>>topico: %s\n", mensagem.user,mensagem.nometopico);
+    all *ptd = (all *) estruturaprincipal;
     
+
+    printf("ENTROU\n");
+    fflush(stdout);
 
     //printf("\ntamanho: %d\n",sizeof(&ptd->topico[0].nomeTopico));fflush(stdout);
     
     //aux2.topico[i].nomeTopico
 
-    for(int i = 0; i <20; i++){
-        printf("entrou aqui\t valor i: %d\n",i);
-        fflush(stdout);
-        //sleep(2);
-        if( strlen(estruturaprincipal->topico[i].nomeTopico) == 0 ){
-            printf("encontrou slot vazia\n" );
-            strcpy(estruturaprincipal->topico[i].nomeTopico, mensagem.nometopico) ;
-            printf("\nall topico %s\n", estruturaprincipal->topico[i].nomeTopico);
-            fflush(stdout);
+    for(int i = 0;i <20; i++){
+
+        if( strcmp(&ptd->topico[i].nomeTopico, 0) == 0 ){
+            //printf("encontrou slot vazia\n");
+            //strcpy(&ptd->topico[i].nomeTopico, dadosaenviar.topico[0].nomeTopico) ;
+            //printf("\nall topico %s\n", &ptd->topico[i].nomeTopico);
+            //fflush(stdout);
             return;
-        }else if ( strcmp(estruturaprincipal->topico[i].nomeTopico, mensagem.nometopico) == 0){ // se encontrar um topico diferente, quebra o ciclo e procura enviar a mensagem
-            printf("\n#### encontrou um topico igual!!!!\n");
+        }else if ( strcmp(&ptd->topico[i].nomeTopico, 0) != 0){ // se encontrar um topico diferente, quebra o ciclo e procura enviar a mensagem
+            //printf("encontrou um topico diferente!!!!");
+            //fflush(stdout);
             break;
         }
 
     }
-
-    for(int x = 0; x <20; x++){
-        printf("\n\ntopicos existentes\n topico[%d]: %s", x, estruturaprincipal->topico[x].nomeTopico);
-    }
-
-    for (int xusers = 0 ; xusers < 10; xusers++){
-        printf("\n &ptd->user[xusers].username: %s\n", estruturaprincipal->user[xusers].username);
+        
+    /*for (int xusers = 0 ; xusers < 10; xusers++){
+        printf("\n &ptd->user[xusers].username: %s\n", &ptd->user[xusers].username);
         fflush(stdout);
-        if ( strcmp ( estruturaprincipal->user[xusers].username, mensagem.user) != 0){
-
+        if ( strcmp ( &ptd->user[xusers].username, dadosaenviar.user[0].username ) != 0){
             for (int yuserregisteredtopics = 0; yuserregisteredtopics < 20; yuserregisteredtopics++){
 
             //compara se o nome do utilizador xusers é igual ao que enviou a mensagem
                 
-                if ( strcmp(  estruturaprincipal->user[xusers].topicosInscritos[yuserregisteredtopics].nomeTopico, mensagem.nometopico ) == 0 ){
+                if ( strcmp(  &ptd->user[xusers].topicosInscritos[yuserregisteredtopics].nomeTopico, dadosaenviar.topico[0].nomeTopico ) == 0 ){
                     printf("entrou para enviar mensagem!!!!!!!!\n");
                     fflush(stdout);
                 }  
 
-            
+            / // 
             
     //write();
 
         }
-    } 
-    
-    }
+    } */  
     printf("SUCCESS!!!!");
 
 }
@@ -213,7 +152,6 @@ void handle_signal(int sig)
 
 
 void entradaUser(all *main, Mensagem mensagem){
-    all *ptd = (all *) main;
     printf("[MANAGER] Verificando autenticação de usuário...\n");
 
     bool podeLogar = false;
@@ -222,7 +160,7 @@ void entradaUser(all *main, Mensagem mensagem){
     // Verificar se o usuário já está logado
     for (int i = 0; i < 10; i++)
     {
-        if (strcmp(ptd->user[i].username, mensagem.user) == 0)
+        if (strcmp(main->user[i].username, mensagem.user) == 0)
         {
             printf("[MANAGER] Usuário já logado: %s\n", mensagem.user);
             podeLogar = false;
@@ -233,20 +171,15 @@ void entradaUser(all *main, Mensagem mensagem){
     // Verificar espaço para logar
     for (int i = 0; i < 10; i++)
     {
-        if (ptd->user[i].username[0] == '\0')
+        if (main->user[i].username[0] == '\0')
         {
             podeLogar = true;
-            strcpy(ptd->user[i].username, mensagem.user);
-            strcpy(ptd->user[i].rcvpipename, mensagem.pipe);
+            strcpy(main->user[i].username, mensagem.user);
+            strcpy(main->user[i].rcvpipename, mensagem.pipe);
             posicao = i;
             break;
         }
     }
-
-
-    for (int y = 0; y < 10; y++)
-    printf("utilizadores ligados:%s\n",ptd->user[y].username);
-
 
     if (posicao == -1)
     {
@@ -295,7 +228,7 @@ void *getpipemessages(void *pall)
     all *ptd = (all *)pall;
     all aux, aux2;
     Mensagem mensagem;
-     
+
 
     memset(&aux2, 0, sizeof(aux2));
     memset(&aux, 0, sizeof(aux2));
@@ -309,15 +242,10 @@ void *getpipemessages(void *pall)
         total_bytes = 0;
         
         printf("chegou v2 \n");
-        pthread_mutex_t thrmutex;
-
-        pthread_mutex_init(&thrmutex,NULL);
 
         //total_bytes = read(ptd->help.fd, &aux2 , sizeof(all) );
-        pthread_mutex_lock(&thrmutex);
         total_bytes = read(ptd->help.fd, &mensagem , sizeof(Mensagem) );
-        pthread_mutex_unlock(&thrmutex);
-        fflush(stdin);
+
         printf("chegou v3. tipo de mensagem: %d \n", mensagem.tipo);
 
         if (total_bytes <= 0){
@@ -333,8 +261,7 @@ void *getpipemessages(void *pall)
         }
             
             
-            for (int y = 0; y < 10; y++)
-            printf("getpipe \t utilizadores ligados:%s\n",ptd->user[y].username);
+        
 
         printf("total bytes???? %d \n",total_bytes);
         
@@ -343,19 +270,13 @@ void *getpipemessages(void *pall)
             
             case 1: 
                 printf("\ntipo: %d",mensagem.tipo);
-                //pthread_mutex_lock(&thrmutex);
                 processaEnvioMensagens(ptd, mensagem);
-                //pthread_mutex_unlock(&thrmutex);
-
                 break;
 
 
             case 2: // login
                 printf("\ntipo: %d",mensagem.tipo);
-                //pthread_mutex_lock(&thrmutex);
                 entradaUser(&aux2, mensagem);
-                //pthread_mutex_unlock(&thrmutex);
-
                 fflush(stdin);
                 break;
 
@@ -392,10 +313,6 @@ int main()
     */
     
     all st;
-
-    initializeAll(&st);
-
-
     struct sigaction sa;
     sa.sa_handler = handle_signal;
     pid_t res_fork = fork();

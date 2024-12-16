@@ -248,7 +248,7 @@ int main(int argc, char *agrv[])
               // st.topico->msg.duracao = duracao;
               message.tipo = 1;
               printf("\nMSG escrita no message-> %s", message.message);
-              write(fd, &message, sizeof(Mensagem));
+              nbytes = write(fd, &message, sizeof(Mensagem));
               if (nbytes == -1)
               {
                 perror("Erro na escrita no named pipe");
@@ -261,6 +261,8 @@ int main(int argc, char *agrv[])
               }
               break;
             }
+
+
 
           }else if (strcmp(token, "subscribe") == 0){
 
