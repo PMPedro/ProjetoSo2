@@ -1,5 +1,5 @@
-
 //#include "helper.h"
+#pragma
 #include<stdio.h>
 #include<stdlib.h>
 #include<signal.h>
@@ -14,9 +14,6 @@
 #include <pthread.h>
 #include <stdbool.h>
 #define BUFFER_SIZE 1024
-#pragma
-
-#include "funcoesHelper.c"
 
 #define FIFO_NAME "mainpipe"
 int running = 1;
@@ -145,23 +142,13 @@ void listMessage(all *aux, all *main)
 
 
 void processaEnvioMensagens(all *estruturaprincipal, Mensagem mensagem){
-    //all *ptd = (all *) estruturaprincipal;
-    
-    
-
-    printf("\n\nENTROU NO PROCESSA ENVIO MENSAGENS\n utilizador que enviou mensagem: %s \n >>>topico: %s\n", mensagem.user,mensagem.nometopico);
-    
-
-    //printf("\ntamanho: %d\n",sizeof(&ptd->topico[0].nomeTopico));fflush(stdout);
-    
-    //aux2.topico[i].nomeTopico
 
     for(int i = 0; i <20; i++){
-        printf("entrou aqui\t valor i: %d\n",i);
+        
         fflush(stdout);
         //sleep(2);
         if( strlen(estruturaprincipal->topico[i].nomeTopico) == 0 ){
-            printf("encontrou slot vazia\n" );
+            
             strcpy(estruturaprincipal->topico[i].nomeTopico, mensagem.nometopico) ;
             strcpy(estruturaprincipal->user[i].topicosInscritos, mensagem.nometopico) ;
 
@@ -169,7 +156,7 @@ void processaEnvioMensagens(all *estruturaprincipal, Mensagem mensagem){
             fflush(stdout);
             return;
         }else if ( strcmp(estruturaprincipal->topico[i].nomeTopico, mensagem.nometopico) == 0){ // se encontrar um topico diferente, quebra o ciclo e procura enviar a mensagem
-            printf("\n#### encontrou um topico igual!!!!\n");
+            
             break;
         }
 
@@ -224,10 +211,8 @@ void handle_signal(int sig)
 void entradaUser(all *main, Mensagem mensagem){
     //all *ptd = (all *) main;
     printf("[MANAGER] Verificando autenticação de usuário...\n");
-    bool verifica = true;
-    char resposta[20];
 
-    bool space = false, alExist = false;
+    bool podeLogar = false;
     int posicao = -1;
 
     // Verificar se o usuário já está logado
@@ -238,15 +223,11 @@ void entradaUser(all *main, Mensagem mensagem){
             printf("[MANAGER] Usuário já logado: %s\n", mensagem.user);
             podeLogar = false;
             return;
-
-        if (strcmp(main->user[i].username, aux->user[0].username) == 0)
-        {
-            printf("[MANAGER] Usuário já logado: %s\n", aux->user[0].username);
-            verifica = false;
-            break;
         }
     }
-    if (verifica)
+
+    // Verificar espaço para logar
+    for (int i = 0; i < 10; i++)
     {
         if (strlen(&main->user[i].username) == 0)
         {
@@ -256,17 +237,6 @@ void entradaUser(all *main, Mensagem mensagem){
             printf("ENTROU NO ESPAÇO PARA LOGAR!!!\n\n\n username:%s\tpipe:%s\n\n\n",&main->user[i].username,&main->user[i].rcvpipename);
             posicao = i;
             break;
-        // Verificar espaço para logar
-        for (int i = 0; i < 10; i++)
-        {
-            if (strlen(main->user[i].username) == 0)
-            {
-
-                strcpy(main->user[i].username, aux->user[0].username);
-                strcpy(main->user[i].rcvpipename, aux->user[0].rcvpipename);
-                posicao = i;
-                break;
-            }
         }
     }
 
@@ -278,7 +248,7 @@ void entradaUser(all *main, Mensagem mensagem){
     if (posicao == -1)
     {
         printf("[MANAGER] Não há espaço para novos usuários.\n");
-        verifica = false;
+        podeLogar = false;
     }
     printf("\n<manager> pipe de login: %s\n", mensagem.pipe);
 
@@ -293,15 +263,6 @@ void entradaUser(all *main, Mensagem mensagem){
     char resposta[10] = {0};
     strcpy(resposta, podeLogar ? "true" : "false");
     printf("user:%s\n",mensagem.user);
-    if (verifica)
-    {
-        strncpy(resposta, "true", sizeof(resposta) - 1);
-    }
-    else
-    {
-        strncpy(resposta, "false", sizeof(resposta) - 1);
-    }
-
     if (write(fd, resposta, sizeof(resposta)) == -1)
     {
         perror("[MANAGER] Erro ao enviar resposta para o cliente");
@@ -412,16 +373,6 @@ void *getpipemessages(void *pall)
             default:
                 printf("ta num loop?!\n");
                 break;
-        printf("\n <MSG> %s", aux2.topico[0].msg.message);
-        printf("\n TIPO %d", aux2.tipo);
-        if (aux2.tipo == 1)
-        {
-            listMessage(&aux2, ptd);
-            printf("entra na msg");
-        }
-        if (aux2.tipo == 2)
-        {
-            entradaUser(&aux2, ptd);
         }
     }
     printf("DAFUUUUUUCK=! \n");
@@ -431,11 +382,7 @@ void *getpipemessages(void *pall)
 
 int main()
 {
-    /*
-    #########
-    !!!!!!!!!!!!!!! AS MENSAGENS DOS TOPICOS TERÃO QUE INCLUIR ESPAÇOS!!!
-    #########
-    */
+
     
     all st;
 
@@ -446,26 +393,12 @@ int main()
     sa.sa_handler = handle_signal;
     pid_t res_fork = fork();
 
-    /*for (int i = 0; i<20; i++){
-            strcpy(st.topico[i].nomeTopico,".");
-    }*/
-    
-
-    /*for (int x = 0; x<10 ; x++){
-        strcpy(st.user[x].rcvpipename,".");
-        strcpy(st.user[x].username,".");
-    }*/
 
 
     if (res_fork == 0)
     { // Processo Filho
 
-      
-      /*  int r = execl("feed", "feed", NULL);
-        if (r == -1)
-        {
-            perror("Erro a Executar");
-        }*/
+        
     }
     else
     {
@@ -513,7 +446,8 @@ int main()
 
         while (running)
         {
-            char word1[25] = "", word2[25] = "";
+
+            /*char word1[25] = "", word2[25] = "";
             char comando[50];
             fgets(comando, sizeof(comando), stdin);
             comando[strcspn(comando, "\n")] = '\0';
@@ -560,47 +494,6 @@ int main()
             if(strcmp(word1, "users") == 0){
                 listUsers(&st);
             }*/
-            {
-                strncpy(word1, token, sizeof(word1) - 1);
-                word1[sizeof(word1) - 1] = '\0';
-
-                token = strtok(NULL, " ");
-                if (token != NULL)
-                {
-                    strncpy(word2, token, sizeof(word2) - 1);
-                    word2[sizeof(word2) - 1] = '\0';
-                }
-            }
-            if (strcmp(word1, "close") == 0)
-            {
-                break;
-            }
-            if (strcmp(word1, "lock") == 0)
-            {
-                if (strlen(word2) != 0)
-                {
-                    lockTopic(word2, &st);
-                }
-                else
-                    printf("\nERRO na sintaxe");
-            }
-
-            if (strcmp(word1, "unlock") == 0)
-            {
-                if (strlen(word2) != 0)
-                {
-                    unlockTopic(word2, &st);
-                }
-                else
-                    printf("\nERRO na sintaxe");
-            }
-
-            if(strcmp(word1, "topics") == 0){
-                listTopics(&st);
-            }
-            if(strcmp(word1, "users") == 0){
-                listUsers(&st);
-            }
             
 
         }
@@ -609,4 +502,5 @@ int main()
         close(fd);
         unlink(FIFO_NAME);
     }
+
 }
