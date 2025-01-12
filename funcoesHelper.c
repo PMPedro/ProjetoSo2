@@ -46,9 +46,15 @@ void listUsers ( all *st ) {
     bool found = false;
     if(st == NULL ) {
         printf("NAO INICIALIZADO");
+        return;
     }
-    for(int i = 0; i < 20 ; i++){
+
+    printf("<user> %s" , st->user[0].username);
+    for(int i = 0; i < 10 ; i++){
+        printf("\nFAZ");
+
         if(strlen(st->user[i].username) > 0){
+
             printf("\n <user %d> %s", i , st->user[i].username);
             found = true;
         }
